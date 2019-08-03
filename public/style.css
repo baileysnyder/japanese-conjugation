@@ -1,0 +1,272 @@
+body {
+    background: rgb(34, 34, 31);
+    --whiteTextColor: rgb(232, 232, 232);
+}
+
+h1 {
+    text-align: center;
+    color: var(--whiteTextColor);
+}
+
+p {
+    text-align: center;
+    color: var(--whiteTextColor);
+}
+
+* {
+    font-family: "メイリオ"
+}
+
+.streak p {
+    margin: 0.3em;
+}
+
+#current-streak {
+    left: 5px;
+    float: left;
+}
+
+#current-streak-text, #max-streak-text {
+    margin: 0;
+    font-size: 22px;
+}
+
+.grow-animation {
+    animation: grow-animation 0.5s;
+}
+
+@keyframes grow-animation {
+    from { transform: scale(1.7); }
+    to {transform: scale(1); }
+}
+
+.grow-fade-animation {
+    animation: grow-fade-animation 1.2s;
+}
+
+@keyframes grow-fade-animation {
+    0% {
+        transform: scale(0);
+        opacity: 1;
+    }
+    25% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    60% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+#max-streak {
+    right: 5px;
+    float: right;
+}
+
+#top-container {
+    max-width: 700px;
+    min-width: 320px;
+    margin: auto;
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 8px 8px 8px rgb(28, 28, 28);
+    background: rgb(44, 43, 41);
+}
+
+#streak-container:after, #settings-child-container:after{
+    content: "";
+    display: table;
+    clear: both;
+}
+
+#verb-box {
+    display: inline-block;
+    /*background: rgb(165, 100, 40);*/
+    padding: 10px;
+    border-radius: 25px;
+    /* Using position relative because setting negative margins caused alignment to rely on streak text above*/
+    position: relative;
+    top: -22px;
+}
+
+#verb-box p {
+    display: inline-block;
+    margin-left: 26px;
+    margin-right: 26px;
+}
+
+#verb-container {
+    margin-top: 0px;
+    text-align: center;
+    margin-bottom: -10px;
+}
+
+#verb-text {
+    font-size: 46px;
+    margin-top: 0;
+    margin-bottom: -6px;
+}
+
+#definition {
+    font-size: 18px;
+    margin-top: 0;
+    margin-bottom: 4px;
+}
+
+/* Wait until select font to fix issue where hiragana causes all elements below to move down slightly */
+#verb-type {
+    min-height: 23px;
+    font-size: 20px;
+    margin: 0;
+}
+
+#conjugation-inquery-text {
+    font-size: 30px;
+    margin: 10px;
+}
+
+#status-container {
+    text-align: center;
+    margin: 24px;
+    height: 86px;
+}
+
+#status-box {
+    /* change between inline-flex and none */
+    display: none;
+    background: green;
+    border-radius: 20px;
+    width: 66%;
+    height: 88px;
+    justify-content: center;
+    flex-direction: column;
+}
+
+#status-text {
+    line-height: 1.5;
+    vertical-align: middle;
+    font-size: 24px;
+    color: white;
+}
+
+#input-container {
+    text-align: center;
+    padding-top: 8px;
+    margin: 10px;
+}
+
+#main-text-input, #settings-child-container {
+    width: 88%;
+}
+
+#main-text-input {
+    border-radius: 100px;
+    font-size: 22px;
+    border: 1.5px;
+    background: white;
+    padding-top: 6px;
+    padding-bottom: 4px;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+#main-text-input:hover:not(:focus):not(:disabled) {
+    background: rgb(224, 224, 224);
+}
+
+#main-text-input:disabled {
+    background:rgb(158, 158, 158);
+}
+
+#settings-container {
+    text-align: center;
+    margin: 0px;
+}
+
+#settings-child-container {
+    display: inline-block;
+}
+
+#settings-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+#settings-table td {
+    width: 33.33%;
+}
+
+button {
+    float: right;
+    background: none;/*rgb(54, 54, 54);*/
+    border: none;
+    border-radius: 10px;
+    color: var(--whiteTextColor);
+    padding-top: 4px;
+    padding-bottom: 4px;
+    padding-right: 6px;
+    padding-left: 12px;
+    font-size: 16px;
+    margin-right:-6px;
+}
+
+button:hover {
+    background: rgb(55, 55, 55);
+}
+
+#press-any-key-text {
+    margin: 0;
+    font-size: 14px;
+    display: none;
+    color: var(--whiteTextColor);
+}
+
+h2 {
+    margin-top: 0;
+    text-align: center;
+    color: var(--whiteTextColor);
+}
+
+#options-view {
+    padding-left: 16px;
+    padding-right: 16px;
+    display: none;
+}
+
+#options-form {
+    font-size: 14px;
+    text-align: left;
+    color: var(--whiteTextColor);
+}
+
+#options-form p {
+    text-align: left;
+    margin: 4px;
+}
+
+.must-choose-one-text {
+    float:right;
+    color: rgb(236, 51, 51);
+}
+
+.options-indent {
+    padding-left: 30px;
+}
+
+#back-button-container {
+    display: inline-block;
+    width: 100%;
+    margin-top: 10px;
+}
+
+#options-form h3 {
+    display: inline-block;
+}
+
+.hide-furigana rt{
+    display: none;
+}

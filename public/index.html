@@ -1,0 +1,150 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Japanese Conjugation Practice</title>
+        <meta name="description" content="Learn how to conjugate Japanese verbs and adjectives! Includes present tense, past tense, te form, and adverbs.">
+        <link rel="stylesheet" href="./style.css">
+        <script defer src="./wanakana.min.js"></script>    
+        <script type="module" defer src="./main.js"></script>
+    </head>
+    <body>
+        <h1>Japanese Conjugation Practice</h1>
+        <div id="top-container">
+            <div id = "main-view">
+                <div id="streak-container">
+                        <div id="current-streak" class="streak">
+                            <p>Current Streak</p>
+                            <p id="current-streak-text">0</p>
+                        </div>
+                        <div id="max-streak" class="streak">
+                            <p>Max Streak</p>
+                            <p id="max-streak-text"> </p>
+                        </div>
+                    </div>
+                    <div id="verb-container">
+                        <div id="verb-box">
+                            <p id="verb-text"></p>
+                            <br>
+                            <p id="definition"></p>
+                            <br>
+                            <p id="verb-type"></p>
+                            <br>
+                        </div>
+                    </div>
+                    <div id="conjugation-inquery-container">
+                        <p id="conjugation-inquery-text"></p>
+                    </div>
+                    <div id="status-container">
+                        <div id="status-box">
+                            <p id="status-text">Correct</p>
+                        </div>
+                    </div>
+                    <div id="input-container">
+                        <input id="main-text-input" type="text">
+                    </div>
+                    <div id="settings-container">
+                        <div id="settings-child-container">
+                            <table id="settings-table">
+                                <td style="width:29%"></td>
+                                <td style="width:42%"id="press-any-key-text">Press Enter/Return to continue</td>
+                                <td style="width:29%"><button id="options-button">Options ⚙️</button></td>
+                            </table>
+                        </div>
+                    </div>
+            </div>
+            <div id="options-view">
+                <h2>Options</h2>
+                <form id = "options-form">
+                    <p><input type="checkbox" name="furigana"> Show furigana above kanji</p>
+                    <p><input type="checkbox" name="emoji"> Show emojis above conjugation types</p>
+                    <hr>
+                    <div id="verbs-h3-container">
+                            <input type="checkbox" name="verb">
+                            <h3> Verbs</h3>
+                        </div>
+                    <div class="options-indent">
+                        <table style="width:100%">
+                            <tr>
+                                <td><input type="checkbox" name="verbpresent"> Present tense</td>
+                                <td rowspan="3"class="must-choose-one-text">*Must choose at least 1 option from this category</td>
+                            </tr>
+                            <tr><td><input type="checkbox" name="verbpast"> Past tense</td></tr>
+                            <tr><td><input type="checkbox" name="verbte"> て-form</td></tr>
+                        </table>
+                        <hr>
+                        <table style="width:100%">
+                            <tr>
+                                <td><input type="checkbox" name="verbaffirmative"> Affirmative</td>
+                                <td rowspan="2"class="must-choose-one-text">*Must choose at least 1 option from this category</td>
+                            </tr>
+                            <tr><td><input type="checkbox" name="verbnegative"> Negative</td></tr>
+                        </table>
+                        <hr>
+                        <table style="width:100%">
+                            <tr>
+                                <td><input type="checkbox" name="verbplain"> Plain</td>
+                                <td rowspan="2"class="must-choose-one-text">*Must choose at least 1 option from this category</td>
+                            </tr>
+                            <tr><td><input type="checkbox" name="verbpolite"> Polite</td></tr>
+                        </table>
+                        <hr>
+                    <table style="width:100%">
+                            <tr>
+                                <td><input type="checkbox" name="verbu"> う-verbs</td>
+                                <td rowspan="3"class="must-choose-one-text">*Must choose at least 1 option from this category</td>
+                            </tr>
+                            <tr><td><input type="checkbox" name="verbru"> る-verbs</td></tr>
+                            <tr><td><input type="checkbox" name="verbirregular"> Irregular verbs</td></tr>
+                        </table>
+                    </div>
+                    <hr>
+                    <div id="adjectives-h3-container">
+                        <input type="checkbox" name="adjective">
+                        <h3> Adjectives</h3>
+                    </div>
+
+                    <div class="options-indent">
+                        <table style="width:100%">
+                            <tr>
+                                <td><input type="checkbox" name="adjectivepresent"> Present tense</td>
+                                <td rowspan="3"class="must-choose-one-text">*Must choose at least 1 option from this category</td>
+                            </tr>
+                            <tr><td><input type="checkbox" name="adjectivepast"> Past tense</td></tr>
+                            <tr><td><input type="checkbox" name="adjectiveadverb"> Adverb</td></tr>
+                        </table>
+                        <hr>
+                        <table style="width:100%">
+                            <tr>
+                                <td><input type="checkbox" name="adjectiveaffirmative"> Affirmative</td>
+                                <td rowspan="2"class="must-choose-one-text">*Must choose at least 1 option from this category</td>
+                            </tr>
+                            <tr><td><input type="checkbox" name="adjectivenegative"> Negative</td></tr>
+                        </table>
+                        <hr>
+                        <table style="width:100%">
+                            <tr>
+                                <td><input type="checkbox" name="adjectiveplain"> Plain</td>
+                                <td rowspan="2"class="must-choose-one-text">*Must choose at least 1 option from this category</td>
+                            </tr>
+                            <tr><td><input type="checkbox" name="adjectivepolite"> Polite</td></tr>
+                        </table>
+                        <hr>
+                    <table style="width:100%">
+                            <tr>
+                                <td><input type="checkbox" name="adjectivei"> い-adjectives</td>
+                                <td rowspan="3"class="must-choose-one-text">*Must choose at least 1 option from this category</td>
+                            </tr>
+                            <tr><td><input type="checkbox" name="adjectivena"> な-adjectives</td></tr>
+                            <tr><td><input type="checkbox" name="adjectiveirregular"> Irregular adjectives</td></tr>
+                        </table>
+                    </div>
+                    <hr>
+                    <div id="back-button-container">
+                        <button type="submit" id="back-button">Back ⤺</button>
+                    </div>    
+                </form>
+            </div>
+        </div>
+    </body>
+</html>
