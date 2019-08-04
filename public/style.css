@@ -267,6 +267,15 @@ h2 {
     display: inline-block;
 }
 
-.hide-furigana rt{
+.hide-furigana rt, .display-none{
     display: none;
+}
+
+#verb-affirmative-polite-container {
+    margin-top: 14px;
+}
+
+hr {
+    margin: 4px;
+    border: 1px solid rgb(66, 66, 66);
 }

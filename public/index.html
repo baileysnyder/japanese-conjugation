@@ -60,86 +60,87 @@
                     <p><input type="checkbox" name="emoji"> Show emojis above conjugation types</p>
                     <hr>
                     <div id="verbs-h3-container">
-                            <input type="checkbox" name="verb">
-                            <h3> Verbs</h3>
-                        </div>
+                        <input type="checkbox" name="verb">
+                        <h3> Verbs</h3>
+                    </div>
                     <div class="options-indent">
-                        <table style="width:100%">
-                            <tr>
-                                <td><input type="checkbox" name="verbpresent"> Present tense</td>
-                                <td rowspan="3"class="must-choose-one-text">*Must choose at least 1 option from this category</td>
-                            </tr>
-                            <tr><td><input type="checkbox" name="verbpast"> Past tense</td></tr>
-                            <tr><td><input type="checkbox" name="verbte"> て-form</td></tr>
-                        </table>
-                        <hr>
-                        <table style="width:100%">
-                            <tr>
-                                <td><input type="checkbox" name="verbaffirmative"> Affirmative</td>
-                                <td rowspan="2"class="must-choose-one-text">*Must choose at least 1 option from this category</td>
-                            </tr>
-                            <tr><td><input type="checkbox" name="verbnegative"> Negative</td></tr>
-                        </table>
-                        <hr>
-                        <table style="width:100%">
-                            <tr>
-                                <td><input type="checkbox" name="verbplain"> Plain</td>
-                                <td rowspan="2"class="must-choose-one-text">*Must choose at least 1 option from this category</td>
-                            </tr>
-                            <tr><td><input type="checkbox" name="verbpolite"> Polite</td></tr>
-                        </table>
-                        <hr>
-                    <table style="width:100%">
+                        <table style="width:100%" class="options-group">
                             <tr>
                                 <td><input type="checkbox" name="verbu"> う-verbs</td>
-                                <td rowspan="3"class="must-choose-one-text">*Must choose at least 1 option from this category</td>
+                                <td rowspan="3"class="must-choose-one-text display-none">*Must choose at least 1 option from this category</td>
                             </tr>
                             <tr><td><input type="checkbox" name="verbru"> る-verbs</td></tr>
                             <tr><td><input type="checkbox" name="verbirregular"> Irregular verbs</td></tr>
                         </table>
+                        <hr>
+                        <table style="width:100%" class="options-group">
+                            <tr>
+                                <td><input type="checkbox" name="verbpresent" class="verb-uses-affirmative-polite"> Present tense</td>
+                                <td rowspan="3"class="must-choose-one-text display-none">*Must choose at least 1 option from this category</td>
+                            </tr>
+                            <tr><td><input type="checkbox" name="verbpast" class="verb-uses-affirmative-polite"> Past tense</td></tr>
+                            <tr><td><input type="checkbox" name="verbte"> て-form</td></tr>
+                        </table>
+                        <div id="verb-affirmative-polite-container">
+                            <div class="options-indent">
+                                <table style="width:100%" class="options-group">
+                                    <tr>
+                                        <td><input type="checkbox" name="verbaffirmative"> Affirmative</td>
+                                        <td rowspan="2"class="must-choose-one-text display-none">*Must choose at least 1 option from this category</td>
+                                    </tr>
+                                    <tr><td><input type="checkbox" name="verbnegative"> Negative</td></tr>
+                                </table>
+                                <hr>
+                                <table style="width:100%" class="options-group">
+                                    <tr>
+                                        <td><input type="checkbox" name="verbplain"> Plain</td>
+                                        <td rowspan="2"class="must-choose-one-text display-none">*Must choose at least 1 option from this category</td>
+                                    </tr>
+                                    <tr><td><input type="checkbox" name="verbpolite"> Polite</td></tr>
+                                </table>
+                            </div>
+                        </div>
                     </div>
-                    <hr>
                     <div id="adjectives-h3-container">
                         <input type="checkbox" name="adjective">
                         <h3> Adjectives</h3>
                     </div>
 
                     <div class="options-indent">
-                        <table style="width:100%">
+                        <table style="width:100%" class="options-group">
                             <tr>
-                                <td><input type="checkbox" name="adjectivepresent"> Present tense</td>
-                                <td rowspan="3"class="must-choose-one-text">*Must choose at least 1 option from this category</td>
+                                <td><input type="checkbox" name="adjectivepresent" class="adj-uses-affirmative-polite"> Present tense</td>
+                                <td rowspan="3"class="must-choose-one-text display-none">*Must choose at least 1 option from this category</td>
                             </tr>
-                            <tr><td><input type="checkbox" name="adjectivepast"> Past tense</td></tr>
+                            <tr><td><input type="checkbox" name="adjectivepast" class="adj-uses-affirmative-polite"> Past tense</td></tr>
                             <tr><td><input type="checkbox" name="adjectiveadverb"> Adverb</td></tr>
                         </table>
                         <hr>
-                        <table style="width:100%">
+                        <table style="width:100%" class="options-group" id="adj-affirmative-group">
                             <tr>
                                 <td><input type="checkbox" name="adjectiveaffirmative"> Affirmative</td>
-                                <td rowspan="2"class="must-choose-one-text">*Must choose at least 1 option from this category</td>
+                                <td rowspan="2"class="must-choose-one-text display-none">*Must choose at least 1 option from this category</td>
                             </tr>
                             <tr><td><input type="checkbox" name="adjectivenegative"> Negative</td></tr>
                         </table>
                         <hr>
-                        <table style="width:100%">
+                        <table style="width:100%" class="options-group" id="adj-polite-group">
                             <tr>
                                 <td><input type="checkbox" name="adjectiveplain"> Plain</td>
-                                <td rowspan="2"class="must-choose-one-text">*Must choose at least 1 option from this category</td>
+                                <td rowspan="2"class="must-choose-one-text display-none">*Must choose at least 1 option from this category</td>
                             </tr>
                             <tr><td><input type="checkbox" name="adjectivepolite"> Polite</td></tr>
                         </table>
                         <hr>
-                    <table style="width:100%">
+                    <table style="width:100%" class="options-group">
                             <tr>
                                 <td><input type="checkbox" name="adjectivei"> い-adjectives</td>
-                                <td rowspan="3"class="must-choose-one-text">*Must choose at least 1 option from this category</td>
+                                <td rowspan="3"class="must-choose-one-text display-none">*Must choose at least 1 option from this category</td>
                             </tr>
                             <tr><td><input type="checkbox" name="adjectivena"> な-adjectives</td></tr>
                             <tr><td><input type="checkbox" name="adjectiveirregular"> Irregular adjectives</td></tr>
                         </table>
                     </div>
-                    <hr>
                     <div id="back-button-container">
                         <button type="submit" id="back-button">Back ⤺</button>
                     </div>    

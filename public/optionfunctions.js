@@ -11,10 +11,6 @@ function isNotTense(word, s) {
     return word.conjugation.tense != s;
 }
 
-function isNotAffirmative(word) {
-    return word.conjugation.affirmative === true;
-}
-
 // would be better to store inquery words as const in separate file
 // when an option is set to false, these filter functions will be used
 // input is a Word from main.js

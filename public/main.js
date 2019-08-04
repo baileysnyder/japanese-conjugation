@@ -27,7 +27,7 @@
 const defaultSettings = () => {
   let inputs = document.getElementById("options-form").querySelectorAll('[type="checkbox"]');
   let retObject = {};
-  for (let x of inputs) {
+  for (let x of Array.from(inputs)) {
     retObject[x.name] = true;
   }
 
@@ -106,14 +106,6 @@ class Conjugation {
     this.affirmate = affirmate;
     this.polite = polite;
   }
-}
-
-function getAffirmativeText(affirmative) {
-  return affirmative ? "Affirmative" : "Negative";
-}
-
-function getPoliteText(polite) {
-  return polite ? "Polite" : "Plain";
 }
 
 function irregularVerbConjugation(hiraganaVerb, affirmative, polite, tense) {
@@ -577,6 +569,74 @@ function updateStatusBoxes(word, entryText) {
   }
 }
 
+function addClassName(element, name) {
+  let arr = element.className.split(" ");
+  if (arr.indexOf(name) == -1) {
+    element.className += " " + name;
+  }
+}
+
+function checkToEnableBackButton() {
+  let errors = document.getElementsByClassName("must-choose-one-text");
+  for (let error of Array.from(errors)) {
+    if (error.style.display == "none") {
+      return;
+    }
+  }
+
+  document.getElementById("back-button").disabled = false;
+}
+
+function onClickCheckboxCheckError(e) {
+  optionsGroupCheckError(e.currentTarget);
+}
+
+function toggleDisplayNone(element, enabled) {
+  if (enabled) {
+    addClassName(element, "display-none");
+  } else {
+    element.className = element.className.replace(" display-none", "");
+  }
+}
+
+function optionsGroupCheckError(groupElement) {
+  let inputs = groupElement.getElementsByTagName("input");
+  let backButton = document.getElementById("back-button");
+  let errorMessage = groupElement.getElementsByClassName("must-choose-one-text")[0];
+
+  for(let input of Array.from(inputs)) {
+    if (input.checked) {
+      toggleDisplayNone(errorMessage, true);
+      checkToEnableBackButton();
+      return;
+    }
+  }
+
+  // if affirmative or polite categories, don't need to display if te or 
+  // if present and past aren't selected, you can disable checkboxes for affirmative and polite categories,
+  // and hide the error messages
+  toggleDisplayNone(errorMessage, false);
+  backButton.disabled = true;
+}
+
+function checkVerbsUsingAffirmativePolite() {
+  let verbsUsingAffirmativePolite = document.getElementsByClassName("verb-uses-affirmative-polite");
+  let toDisable = document.getElementById("verb-affirmative-polite-container");
+  for (let input of Array.from(verbsUsingAffirmativePolite)) {
+    if (input.checked) {
+      let optionGroups = toDisable.getElementsByClassName("options-group");
+      for (let optionGroup of Array.from(optionGroups)) {
+        optionsGroupCheckError(optionGroup);
+      }
+      
+      toggleDisplayNone(toDisable, false);
+      return;
+    }
+  }
+
+  toggleDisplayNone(toDisable, true);
+}
+
 // state has currentWord, previousCorrect, settingsOpen, settings, completeWordList, currentWordList
 // settings has filters property which is an array of keys for filterFunctions to apply on completeWordList to get currentWordList
 // can change state by pressing enter on input field, or by opening / closing settings
@@ -614,6 +674,17 @@ class ConjugationApp {
       document.getElementById("status-box").style.display = "none";
       document.getElementById("status-box").classList.remove(e.animationName);
     });
+
+    // options init
+    let optionsGroups = document.getElementsByClassName("options-group");
+    for (let optionGroup of Array.from(optionsGroups)) {
+      optionGroup.addEventListener("click", onClickCheckboxCheckError);
+    }
+
+    let verbsUsingAffirmativePolite = document.getElementsByClassName("verb-uses-affirmative-polite");
+    for (let verb of Array.from(verbsUsingAffirmativePolite)) {
+      verb.addEventListener("click", checkVerbsUsingAffirmativePolite);
+    }
 
     // need to define this here so the event handler can be removed from within the function and still reference this
     let onAcceptIncorrect = function(e) {
@@ -653,9 +724,11 @@ class ConjugationApp {
 
   settingsButtonClicked(e) {
     let inputs = document.getElementById("options-form").querySelectorAll('[type="checkbox"]');
-      for (let input of inputs) {
+      for (let input of Array.from(inputs)) {
         input.checked = this.state.settings[input.name];
       }
+
+      checkVerbsUsingAffirmativePolite();
 
       document.getElementById("main-view").style.display = "none";
       document.getElementById("options-view").style.display = "block";
@@ -665,7 +738,7 @@ class ConjugationApp {
     e.preventDefault();
     
     let inputs = document.getElementById("options-form").querySelectorAll('[type="checkbox"]');
-      for (let input of inputs) {
+      for (let input of Array.from(inputs)) {
         this.state.settings[input.name] = input.checked;
       }
       localStorage.setItem("settings", JSON.stringify(this.state.settings));
