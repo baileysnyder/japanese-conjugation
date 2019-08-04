@@ -7,8 +7,12 @@ function wordPartOfSpeech(wordJSON) {
     }
 }
 
-function isNotInConjugationInquery(word, s) {
-    return !word.conjugation.conjugationInquery.includes(s);
+function isNotTense(word, s) {
+    return word.conjugation.tense != s;
+}
+
+function isNotAffirmative(word) {
+    return word.conjugation.affirmative === true;
 }
 
 // would be better to store inquery words as const in separate file
@@ -21,27 +25,27 @@ export let optionRemoveFunctions = {
     },
 
     verbpresent: function(x) {
-        return isNotInConjugationInquery(x, "Present");
+        return isNotTense(x, "Present");
     },
     verbpast: function(x) {
-        return isNotInConjugationInquery(x, "Past");
+        return isNotTense(x, "Past");
     },
     verbte: function(x) {
-        return isNotInConjugationInquery(x, "て-form");
+        return isNotTense(x, "て-form");
     },
 
     verbaffirmative: function(x) {
-        return isNotInConjugationInquery(x, "Affirmative");
+        return word.conjugation.affirmative !== true;
     },
     verbnegative: function(x) {
-        return isNotInConjugationInquery(x, "Negative");
+        return word.conjugation.affirmative !== false;
     },
 
     verbplain: function(x) {
-        return isNotInConjugationInquery(x, "Plain");
+        return word.conjugation.polite !== false;
     },
     verbpolite: function(x) {
-        return isNotInConjugationInquery(x, "Polite");
+        return word.conjugation.polite !== true;
     },
 
     verbu: function(x) {
@@ -60,27 +64,27 @@ export let optionRemoveFunctions = {
     },
 
     adjectivepresent: function(x) {
-        return isNotInConjugationInquery(x, "Present");
+        return isNotTense(x, "Present");
     },
     adjectivepast: function(x) {
-        return isNotInConjugationInquery(x, "Past");
+        return isNotTense(x, "Past");
     },
     adjectiveteadverb: function(x) {
-        return isNotInConjugationInquery(x, "て-form");
+        return isNotTense(x, "て-form");
     },
 
     adjectiveaffirmative: function(x) {
-        return isNotInConjugationInquery(x, "Affirmative");
+        return word.conjugation.affirmative !== true;
     },
     adjectivenegative: function(x) {
-        return isNotInConjugationInquery(x, "Negative");
+        return word.conjugation.affirmative !== false;
     },
 
     adjectiveplain: function(x) {
-        return isNotInConjugationInquery(x, "Plain");
+        return word.conjugation.polite !== false;
     },
     adjectivepolite: function(x) {
-        return isNotInConjugationInquery(x, "Polite");
+        return word.conjugation.polite !== true;
     },
 
     adjectivei: function(x) {

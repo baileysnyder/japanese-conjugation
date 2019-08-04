@@ -58,14 +58,26 @@ function wordTypeToDisplayText(type) {
   }
 }
 
-function conjugationInqueryFormatting(inquery) {
-  let newString = (' ' + inquery).slice(1);
-  newString = newString.replace("Present ", "");
-  newString = newString.replace("Past", "<ruby>Past<rt>⌚</rt></ruby>");
-  newString = newString.replace("Affirmative", "<ruby>Affirmative<rt>✅</rt></ruby>");
-  newString = newString.replace("Negative", "<ruby>Negative<rt>🚫</rt></ruby>");
-  newString = newString.replace("Polite", "<ruby>Polite<rt>👔</rt></ruby>");
-  newString = newString.replace("Plain", "<ruby>Plain<rt>👪</rt></ruby>");
+function conjugationInqueryFormatting(conjugation) {
+  let newString = "";
+
+  if (conjugation.tense == "Past") {
+    newString += "<ruby>Past<rt>⌚</rt> </ruby>";
+  } else if (conjugation.tense == "て-form") {
+    newString += conjugation.tense;
+  }
+
+  if (conjugation.affirmative === true) {
+    newString += "<ruby>Affirmative<rt>✅</rt> </ruby>";
+  } else if (conjugation.affirmate === false) {
+    newString += "<ruby>Negative<rt>🚫</rt> </ruby>";
+  }
+
+  if (conjugation.polite === true) {
+    newString += "<ruby>Polite<rt>👔</rt> </ruby>";
+  } else if (conjugation.polite === false) {
+    newString += "<ruby>Plain<rt>👪</rt> </ruby>";
+  }
 
   return newString;
 }
@@ -75,7 +87,7 @@ function updateCurrentWord(word) {
   document.getElementById("verb-text").innerHTML = "<ruby>" + word.wordJSON.kanji + "</ruby>";
   document.getElementById("definition").textContent = word.wordJSON.eng;
   document.getElementById("verb-type").textContent = "";
-  document.getElementById("conjugation-inquery-text").innerHTML = conjugationInqueryFormatting(word.conjugation.conjugationInquery);
+  document.getElementById("conjugation-inquery-text").innerHTML = conjugationInqueryFormatting(word.conjugation);
 }
 
 // returns string indicating type
@@ -88,9 +100,11 @@ function wordPartOfSpeech(wordJSON) {
 }
 
 class Conjugation {
-  constructor(conjugation, conjugationInquery) {
+  constructor(conjugation, tense, affirmate, polite) {
     this.conjugation = conjugation;
-    this.conjugationInquery = conjugationInquery;
+    this.tense = tense;
+    this.affirmate = affirmate;
+    this.polite = polite;
   }
 }
 
@@ -258,7 +272,7 @@ let conjugationFunctions = {
         retWord = plainNegativeComplete(hiraganaVerb, type);
       }
 
-      return new Conjugation(retWord, "Present " + getAffirmativeText(affirmative) + " " + getPoliteText(polite));
+      return new Conjugation(retWord, "Present", affirmative, polite);
     },
     past: function(hiraganaVerb, type, affirmative, polite) {
       let retWord;
@@ -284,7 +298,7 @@ let conjugationFunctions = {
         retWord = dropFinalLetter(plainNegative) + "かった";
       }
 
-      return new Conjugation(retWord, "Past " + getAffirmativeText(affirmative) + " " + getPoliteText(polite));
+      return new Conjugation(retWord, "Past", affirmative, polite);
     },
     te: function(hiraganaVerb, type) {
       let retWord;
@@ -316,7 +330,7 @@ let conjugationFunctions = {
         retWord = masuStem(hiraganaVerb, type) + "て";
       }
 
-      return new Conjugation(retWord, "て-Form");
+      return new Conjugation(retWord, "て-Form", null, null);
     }
   },
 
@@ -350,7 +364,7 @@ let conjugationFunctions = {
         retWord = hiraganaAdjective + "じゃない";
       }
 
-      return new Conjugation(retWord, "Present " + getAffirmativeText(affirmative) + " " + getPoliteText(polite));
+      return new Conjugation(retWord, "Present", affirmative, polite);
     },
     past: function(hiraganaAdjective, type, affirmative, polite) {
       let retWord;
@@ -383,7 +397,7 @@ let conjugationFunctions = {
         retWord = hiraganaAdjective + "じゃなかった";
       }
 
-      return new Conjugation(retWord, "Past " + getAffirmativeText(affirmative) + " " + getPoliteText(polite));
+      return new Conjugation(retWord, "Past", affirmative, polite);
     },
     adverb: function(hiraganaAdjective, type) {
       let retWord;
@@ -400,7 +414,7 @@ let conjugationFunctions = {
         retWord = hiraganaAdjective + "に";
       }
 
-      return new Conjugation(retWord, "Adverb");
+      return new Conjugation(retWord, "Adverb", null, null);
     }
   }
 };
