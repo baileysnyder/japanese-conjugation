@@ -227,6 +227,7 @@ button:hover {
 
 h2 {
     margin-top: 0;
+    margin-bottom: 10px;
     text-align: center;
     color: var(--whiteTextColor);
 }
@@ -271,11 +272,16 @@ h2 {
     display: none;
 }
 
-#verb-affirmative-polite-container {
-    margin-top: 14px;
+#verb-affirmative-polite-container, #adjective-affirmative-polite-container {
+    margin-top: 12px;
 }
 
 hr {
     margin: 4px;
     border: 1px solid rgb(66, 66, 66);
+}
+
+h3 {
+    margin-top: 14px;
+    margin-bottom: 14px;
 }

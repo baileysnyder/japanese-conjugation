@@ -1,96 +1,97 @@
 // it would be better to put this duplicated function in separate file
-function wordPartOfSpeech(wordJSON) {
-    if (wordJSON.type == "u" || wordJSON.type == "ru" || wordJSON.type == "irv") {
-      return "verb";
-    } else if (wordJSON.type == "i" || wordJSON.type == "na" || wordJSON.type == "ira") {
-      return "adjective";
+function wordPartOfSpeech(word) {
+    if (word.wordJSON.type == "u" || word.wordJSON.type == "ru" || word.wordJSON.type == "irv") {
+      return "v";
+    } else if (word.wordJSON.type == "i" || word.wordJSON.type == "na" || word.wordJSON.type == "ira") {
+      return "a";
     }
 }
 
-function isNotTense(word, s) {
-    return word.conjugation.tense != s;
+function isTense(word, s) {
+    return word.conjugation.tense == s;
 }
 
 // would be better to store inquery words as const in separate file
-// when an option is set to false, these filter functions will be used
+// when an option is set to true, these filter functions will be used
 // input is a Word from main.js
+// create sub array with all verbs, then run affirmative, polite checks on sub array to avoid checking if verb twice
 export let optionRemoveFunctions = {
     // Verbs
     verb: function(x) {
-        return wordPartOfSpeech(x.wordJSON) != "verb";
+        return wordPartOfSpeech(x) == "v";
     },
 
     verbpresent: function(x) {
-        return isNotTense(x, "Present");
+        return isTense(x, "Present");
     },
     verbpast: function(x) {
-        return isNotTense(x, "Past");
+        return isTense(x, "Past");
     },
     verbte: function(x) {
-        return isNotTense(x, "て-form");
+        return isTense(x, "て-form");
     },
 
     verbaffirmative: function(x) {
-        return word.conjugation.affirmative !== true;
+        return x.conjugation.affirmative === true;
     },
     verbnegative: function(x) {
-        return word.conjugation.affirmative !== false;
+        return x.conjugation.affirmative === false;
     },
 
     verbplain: function(x) {
-        return word.conjugation.polite !== false;
+        return x.conjugation.polite === false;
     },
     verbpolite: function(x) {
-        return word.conjugation.polite !== true;
+        return x.conjugation.polite === true;
     },
 
     verbu: function(x) {
-        return x.wordJSON.type != "u";
+        return x.wordJSON.type == "u";
     },
     verbru: function(x) {
-        return x.wordJSON.type != "ru";
+        return x.wordJSON.type == "ru";
     },
     verbirregular: function(x) {
-        return x.wordJSON.type != "irv";
+        return x.wordJSON.type == "irv";
     },
 
     // Adjectives
     adjective: function(x) {
-        return wordPartOfSpeech(x.wordJSON) != "adjective";
+        return wordPartOfSpeech(x) == "a";
     },
 
     adjectivepresent: function(x) {
-        return isNotTense(x, "Present");
+        return isTense(x, "Present");
     },
     adjectivepast: function(x) {
-        return isNotTense(x, "Past");
+        return isTense(x, "Past");
     },
     adjectiveteadverb: function(x) {
-        return isNotTense(x, "て-form");
+        return isTense(x, "て-form");
     },
 
     adjectiveaffirmative: function(x) {
-        return word.conjugation.affirmative !== true;
+        return x.conjugation.affirmative === true;
     },
     adjectivenegative: function(x) {
-        return word.conjugation.affirmative !== false;
+        return x.conjugation.affirmative === false;
     },
 
     adjectiveplain: function(x) {
-        return word.conjugation.polite !== false;
+        return x.conjugation.polite === false;
     },
     adjectivepolite: function(x) {
-        return word.conjugation.polite !== true;
+        return x.conjugation.polite === true;
     },
 
     adjectivei: function(x) {
-        return x.wordJSON.type != "i";
+        return x.wordJSON.type == "i";
     },
     adjectivena: function(x) {
-        return x.wordJSON.type != "na";
+        return x.wordJSON.type == "na";
     },
     adjectiveirregular: function(x) {
-        return x.wordJSON.type != "ira";
+        return x.wordJSON.type == "ira";
     }
 };
 

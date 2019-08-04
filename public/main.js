@@ -62,21 +62,21 @@ function conjugationInqueryFormatting(conjugation) {
   let newString = "";
 
   if (conjugation.tense == "Past") {
-    newString += "<ruby>Past<rt>⌚</rt> </ruby>";
+    newString += "<ruby>Past<rt>⌚</rt></ruby> ";
   } else if (conjugation.tense == "て-form") {
     newString += conjugation.tense;
   }
 
   if (conjugation.affirmative === true) {
-    newString += "<ruby>Affirmative<rt>✅</rt> </ruby>";
-  } else if (conjugation.affirmate === false) {
-    newString += "<ruby>Negative<rt>🚫</rt> </ruby>";
+    newString += "<ruby>Affirmative<rt>✅</rt></ruby> ";
+  } else if (conjugation.affirmative === false) {
+    newString += "<ruby>Negative<rt>🚫</rt></ruby> ";
   }
 
   if (conjugation.polite === true) {
-    newString += "<ruby>Polite<rt>👔</rt> </ruby>";
+    newString += "<ruby>Polite<rt>👔</rt></ruby>";
   } else if (conjugation.polite === false) {
-    newString += "<ruby>Plain<rt>👪</rt> </ruby>";
+    newString += "<ruby>Plain<rt>👪</rt></ruby>";
   }
 
   return newString;
@@ -100,10 +100,10 @@ function wordPartOfSpeech(wordJSON) {
 }
 
 class Conjugation {
-  constructor(conjugation, tense, affirmate, polite) {
+  constructor(conjugation, tense, affirmative, polite) {
     this.conjugation = conjugation;
     this.tense = tense;
-    this.affirmate = affirmate;
+    this.affirmative = affirmative;
     this.polite = polite;
   }
 }
@@ -480,6 +480,7 @@ function createWordList(JSONWords) {
 }
 
 // eventually hook up to database
+// keep as separate arrays to make parsing with options faster
 import {verbs, adjectives} from "./verbs.js"
 function getWords() {
   return verbs.concat(adjectives);
@@ -503,17 +504,6 @@ function pickRandomWord(wordList) {
     console.log(err);
     return wordList[0];
   }
-}
-
-function init() {
-  document.getElementById("max-streak-text").textContent = localStorage.getItem("maxScore") || "0";
-  let input = document.getElementsByTagName("input")[0]
-  wanakana.bind(input);
-  input.focus();
-
-  let wordList = createWordList(getWords());
-  let randomWord = pickRandomWord(wordList);
-  updateCurrentWord(randomWord);
 }
 
 // need to assign state to empty object before applying action in order to make the state immutable
@@ -619,22 +609,29 @@ function optionsGroupCheckError(groupElement) {
   backButton.disabled = true;
 }
 
-function checkVerbsUsingAffirmativePolite() {
-  let verbsUsingAffirmativePolite = document.getElementsByClassName("verb-uses-affirmative-polite");
-  let toDisable = document.getElementById("verb-affirmative-polite-container");
-  for (let input of Array.from(verbsUsingAffirmativePolite)) {
+function checkUsingAffirmativePolite(inputClassName, affPolContainerName) {
+  let usingAffirmativePolite = document.getElementsByClassName(inputClassName);
+  let toDisable = document.getElementById(affPolContainerName);
+  for (let input of Array.from(usingAffirmativePolite)) {
     if (input.checked) {
       let optionGroups = toDisable.getElementsByClassName("options-group");
       for (let optionGroup of Array.from(optionGroups)) {
         optionsGroupCheckError(optionGroup);
       }
-      
+
       toggleDisplayNone(toDisable, false);
       return;
     }
   }
-
   toggleDisplayNone(toDisable, true);
+}
+
+function checkVerbsUsingAffirmativePolite() {
+  checkUsingAffirmativePolite("verb-uses-affirmative-polite", "verb-affirmative-polite-container");
+}
+
+function checkAdjectivesUsingAffirmativePolite() {
+  checkUsingAffirmativePolite("adjective-uses-affirmative-polite", "adjective-affirmative-polite-container");
 }
 
 // state has currentWord, previousCorrect, settingsOpen, settings, completeWordList, currentWordList
@@ -684,6 +681,11 @@ class ConjugationApp {
     let verbsUsingAffirmativePolite = document.getElementsByClassName("verb-uses-affirmative-polite");
     for (let verb of Array.from(verbsUsingAffirmativePolite)) {
       verb.addEventListener("click", checkVerbsUsingAffirmativePolite);
+    }
+
+    let adjectivesUsingAffirmativePolite = document.getElementsByClassName("adjective-uses-affirmative-polite");
+    for (let verb of Array.from(adjectivesUsingAffirmativePolite)) {
+      verb.addEventListener("click", checkAdjectivesUsingAffirmativePolite);
     }
 
     // need to define this here so the event handler can be removed from within the function and still reference this
