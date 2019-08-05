@@ -63,7 +63,7 @@ function conjugationInqueryFormatting(conjugation) {
 
   if (conjugation.tense == "Past") {
     newString += "<ruby>Past<rt>⌚</rt></ruby> ";
-  } else if (conjugation.tense == "て-form") {
+  } else if (conjugation.tense == "て-form" || conjugation.tense == "Adverb") {
     newString += conjugation.tense;
   }
 
@@ -322,7 +322,7 @@ let conjugationFunctions = {
         retWord = masuStem(hiraganaVerb, type) + "て";
       }
 
-      return new Conjugation(retWord, "て-Form", null, null);
+      return new Conjugation(retWord, "て-form", null, null);
     }
   },
 
@@ -569,11 +569,13 @@ function addClassName(element, name) {
 function checkToEnableBackButton() {
   let errors = document.getElementsByClassName("must-choose-one-text");
   for (let error of Array.from(errors)) {
-    if (error.style.display == "none") {
+    // checks if any error messages take up space on the screen
+    if (error.offsetWidth > 0 && error.offsetHeight > 0) {
       return;
     }
   }
 
+  console.log("I tried to enable the back button");
   document.getElementById("back-button").disabled = false;
 }
 
@@ -589,11 +591,7 @@ function toggleDisplayNone(element, enabled) {
   }
 }
 
-function optionsGroupCheckError(groupElement) {
-  let inputs = groupElement.getElementsByTagName("input");
-  let backButton = document.getElementById("back-button");
-  let errorMessage = groupElement.getElementsByClassName("must-choose-one-text")[0];
-
+function checkInputsForError(inputs, errorMessage) {
   for(let input of Array.from(inputs)) {
     if (input.checked) {
       toggleDisplayNone(errorMessage, true);
@@ -602,11 +600,27 @@ function optionsGroupCheckError(groupElement) {
     }
   }
 
-  // if affirmative or polite categories, don't need to display if te or 
-  // if present and past aren't selected, you can disable checkboxes for affirmative and polite categories,
-  // and hide the error messages
+  let backButton = document.getElementById("back-button");
   toggleDisplayNone(errorMessage, false);
+  console.log("I tried to diable back button");
   backButton.disabled = true;
+}
+
+function optionsGroupCheckError(groupElement) {
+  let inputs = groupElement.getElementsByTagName("input");
+  let errorMessage = groupElement.getElementsByClassName("must-choose-one-text")[0];
+
+  checkInputsForError(inputs, errorMessage);
+}
+
+function verbAndAdjCheckError() {
+  let inputs = [document.querySelectorAll('input[name="verb"]')[0],
+  document.querySelectorAll('input[name="adjective"]')[0]];
+  toggleDisplayNone(document.getElementById("verb-options-container"), !inputs[0].checked);
+  toggleDisplayNone(document.getElementById("adjective-options-container"), !inputs[1].checked);
+  let errorMessage = document.getElementById("top-must-choose");
+
+  checkInputsForError(inputs, errorMessage);
 }
 
 function checkUsingAffirmativePolite(inputClassName, affPolContainerName) {
@@ -684,9 +698,12 @@ class ConjugationApp {
     }
 
     let adjectivesUsingAffirmativePolite = document.getElementsByClassName("adjective-uses-affirmative-polite");
-    for (let verb of Array.from(adjectivesUsingAffirmativePolite)) {
-      verb.addEventListener("click", checkAdjectivesUsingAffirmativePolite);
+    for (let adj of Array.from(adjectivesUsingAffirmativePolite)) {
+      adj.addEventListener("click", checkAdjectivesUsingAffirmativePolite);
     }
+
+    document.querySelectorAll('input[name="verb"]')[0].addEventListener("click", verbAndAdjCheckError);
+    document.querySelectorAll('input[name="adjective"]')[0].addEventListener("click", verbAndAdjCheckError);
 
     // need to define this here so the event handler can be removed from within the function and still reference this
     let onAcceptIncorrect = function(e) {
@@ -731,6 +748,7 @@ class ConjugationApp {
       }
 
       checkVerbsUsingAffirmativePolite();
+      verbAndAdjCheckError();
 
       document.getElementById("main-view").style.display = "none";
       document.getElementById("options-view").style.display = "block";

@@ -266,6 +266,8 @@ h2 {
 
 #options-form h3 {
     display: inline-block;
+    margin-top: 0px;
+    margin-bottom: 0px;
 }
 
 .hide-furigana rt, .display-none{
@@ -281,7 +283,12 @@ hr {
     border: 1px solid rgb(66, 66, 66);
 }
 
-h3 {
-    margin-top: 14px;
-    margin-bottom: 14px;
+#adjectives-h3-container, #verbs-h3-container {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+#options-form p {
+    margin-left: 0;
+    margin-right: 0;
 }
