@@ -686,7 +686,42 @@ function verbPresAffPlainCheckError() {
   let unselected = checkInputsForError(inputsToDeselectVerbPresAffPlain, false);
 
   if (selected && unselected) {
-    toggleError(errorElement, "*Present, affirmative, plain is an invalid combination", true);
+    toggleError(errorElement, "*Invalid combination: present, affirmative, plain", true);
+    // element could be hidden because verb is unchecked, so check to enable back button
+    checkToEnableBackButton();
+  } else {
+    optionsGroupCheckError(optionsGroup);
+  }
+}
+
+// --public namespace addition--
+let inputsToSelectAdjPresAffPlain = [];
+const adjPresentInput = document.querySelectorAll('input[name="adjectivepresent"]')[0];
+const adjAffirmativeInput = document.querySelectorAll('input[name="adjectiveaffirmative"]')[0];
+const adjPlainInput = document.querySelectorAll('input[name="adjectiveplain"]')[0]
+inputsToSelectAdjPresAffPlain.push(adjPresentInput);
+inputsToSelectAdjPresAffPlain.push(adjAffirmativeInput);
+inputsToSelectAdjPresAffPlain.push(adjPlainInput);
+
+let inputsToDeselectAdjPresAffPlain = [];
+inputsToDeselectAdjPresAffPlain = inputsToDeselectAdjPresAffPlain.concat(Array.from(document.getElementById(
+  "adjective-tense-group").getElementsByTagName("input")).filter(e => e != adjPresentInput));
+inputsToDeselectAdjPresAffPlain = inputsToDeselectAdjPresAffPlain.concat(Array.from(document.getElementById(
+  "adjective-affirmative-polite-container").getElementsByTagName("input")).filter(e => e != adjAffirmativeInput && e != adjPlainInput));
+// --public namespace addition end--
+
+function adjPresAffPlainCheckError() {
+  let optionsGroup = document.getElementById("adjective-type-group");
+  let errorElement = optionsGroup.getElementsByClassName("must-choose-one-text")[0];
+
+  let selected = checkInputsForError(inputsToSelectAdjPresAffPlain, true);
+  let unselected = checkInputsForError(inputsToDeselectAdjPresAffPlain, false);
+
+  let iAdjInput = document.querySelectorAll('input[name="adjectivei"]')[0];
+  let irrAdjInput = document.querySelectorAll('input[name="adjectiveirregular"]')[0];
+  let naAdjInput = document.querySelectorAll('input[name="adjectivena"]')[0];
+  if (selected && unselected && !naAdjInput.checked && (iAdjInput.checked || irrAdjInput.checked)) {
+    toggleError(errorElement, "*Invalid combination: い/irregular, present, affirmative, plain", true);
     // element could be hidden because verb is unchecked, so check to enable back button
     checkToEnableBackButton();
   } else {
@@ -742,6 +777,7 @@ function optionsMenuInit() {
   // call verbAndAdjCheckError from 
   let optionsView = document.getElementById("options-view");
   optionsView.addEventListener("click", verbPresAffPlainCheckError);
+  optionsView.addEventListener("click", adjPresAffPlainCheckError);
 }
 
 // state has currentWord, previousCorrect, settingsOpen, settings, completeWordList, currentWordList

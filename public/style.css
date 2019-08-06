@@ -202,9 +202,12 @@ p {
 
 button {
     float: right;
-    background: none;/*rgb(54, 54, 54);*/
+    background: rgb(63, 63, 63);
     border: none;
-    border-radius: 10px;
+    box-shadow: 0px 1px 0px rgb(35, 35, 35), 1px 0px 0px rgb(35, 35, 35),
+    2px 1px 0px rgb(35, 35, 35), 1px 2px 0px rgb(35, 35, 35),
+    3px 2px 0px rgb(35, 35, 35), 2px 3px 0px rgb(35, 35, 35);
+    border-radius: 20px;
     color: var(--whiteTextColor);
     padding-top: 4px;
     padding-bottom: 4px;
@@ -215,7 +218,12 @@ button {
 }
 
 button:hover {
-    background: rgb(55, 55, 55);
+    background: rgb(70, 70, 70);
+}
+
+button:disabled {
+    background: rgb(40, 40, 40);
+    color: rgb(135, 135, 135);
 }
 
 #press-any-key-text {
