@@ -462,17 +462,41 @@ class Word {
   }
 }
 
+function createArrayOfArrays(length) {
+  let array = new Array(length);
+  for (let i = 0; i < array.length; i++) {
+    array[i] = [];
+  }
+  return array;
+}
+
+// words to ignore will be object with properties word, roundssinceshown, amountToAddFunction
+// if amount of current words is less than 
+function updateProbabilites(currentWords, wordsToIgnore) {
+  const roundToWait = 4;
+  let wordCount = 0, totalProbability = 0;
+  for (let i = 0; i < currentWords.length; i++) {
+    wordCount += currentWords[i].length;
+    for (let j = 0; j < currentWords[0].length; j++) {
+      // add probabilities here
+    }
+  }
+}
+
+// returns 2D array [verbarray, adjarray]
 function createWordList(JSONWords) {
-  let wordList = [];
-  // can currently predict length of wordList because each wordJSON creates 8 entries
-  // if include na present plain this will break
-  let initialProbability = 1 / (JSONWords.length * 8);
+  let wordList = createArrayOfArrays(JSONWords.length);
+  
+  // temp pls delete
+  let initialProbability = 1 / ((JSONWords[0].length + JSONWords[1].length) * 8);
 
   for (let i = 0; i < JSONWords.length; i++) {
-    let conjugations = getAllConjugations(JSONWords[i]);
+    for (let j = 0; j < JSONWords[i].length; j++) {
+      let conjugations = getAllConjugations(JSONWords[i][j]);
 
-    for (let j = 0; j < conjugations.length; j++) {
-      wordList.push(new Word(JSONWords[i], conjugations[j], initialProbability));
+      for (let k = 0; k < conjugations.length; k++) {
+        wordList[i].push(new Word(JSONWords[i][j], conjugations[k], initialProbability));
+      }
     }
   }
 
@@ -480,10 +504,11 @@ function createWordList(JSONWords) {
 }
 
 // eventually hook up to database
-// keep as separate arrays to make parsing with options faster
+// 0 = verbs 1 = adjectives
+// storing in array instead of object to make parsing faster
 import {verbs, adjectives} from "./verbs.js"
 function getWords() {
-  return verbs.concat(adjectives);
+  return [verbs, adjectives];
 }
 
 function pickRandomWord(wordList) {
@@ -491,18 +516,21 @@ function pickRandomWord(wordList) {
 
   try {
     for (let i = 0; i < wordList.length; i++) {
-      if (random < wordList[i].probability) {
-        return wordList[i];
+      for (let j = 0; j < wordList[i].length; j++) {
+        if (random < wordList[i][j].probability) {
+          return wordList[i][j];
+        }
+    
+        random -= wordList[i][j].probability;
       }
-  
-      random -= wordList[i].probability;
+
     }
 
     throw "no random word chosen";
   }
   catch (err) {
     console.log(err);
-    return wordList[0];
+    return wordList[0][0];
   }
 }
 
