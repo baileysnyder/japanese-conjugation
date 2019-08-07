@@ -7,8 +7,8 @@ function wordPartOfSpeech(word) {
     }
 }
 
-function isTense(word, s) {
-    return word.conjugation.tense == s;
+function isNotTense(word, s) {
+    return word.conjugation.tense != s;
 }
 
 // would be better to store inquery words as const in separate file
@@ -18,80 +18,84 @@ function isTense(word, s) {
 export let optionRemoveFunctions = {
     // Verbs
     verb: function(x) {
-        return wordPartOfSpeech(x) == "v";
+        return wordPartOfSpeech(x) != "v";
     },
 
-    verbpresent: function(x) {
-        return isTense(x, "Present");
-    },
-    verbpast: function(x) {
-        return isTense(x, "Past");
-    },
-    verbte: function(x) {
-        return isTense(x, "て-form");
-    },
-
-    verbaffirmative: function(x) {
-        return x.conjugation.affirmative === true;
-    },
-    verbnegative: function(x) {
-        return x.conjugation.affirmative === false;
-    },
-
-    verbplain: function(x) {
-        return x.conjugation.polite === false;
-    },
-    verbpolite: function(x) {
-        return x.conjugation.polite === true;
-    },
-
-    verbu: function(x) {
-        return x.wordJSON.type == "u";
-    },
-    verbru: function(x) {
-        return x.wordJSON.type == "ru";
-    },
-    verbirregular: function(x) {
-        return x.wordJSON.type == "irv";
+    verbs: {
+        verbpresent: function(x) {
+            return isNotTense(x, "Present");
+        },
+        verbpast: function(x) {
+            return isNotTense(x, "Past");
+        },
+        verbte: function(x) {
+            return isNotTense(x, "て-form");
+        },
+    
+        verbaffirmative: function(x) {
+            return x.conjugation.affirmative !== true;
+        },
+        verbnegative: function(x) {
+            return x.conjugation.affirmative !== false;
+        },
+    
+        verbplain: function(x) {
+            return x.conjugation.polite !== false;
+        },
+        verbpolite: function(x) {
+            return x.conjugation.polite !== true;
+        },
+    
+        verbu: function(x) {
+            return x.wordJSON.type != "u";
+        },
+        verbru: function(x) {
+            return x.wordJSON.type != "ru";
+        },
+        verbirregular: function(x) {
+            return x.wordJSON.type != "irv";
+        }
     },
 
     // Adjectives
     adjective: function(x) {
-        return wordPartOfSpeech(x) == "a";
+        return wordPartOfSpeech(x) != "a";
     },
 
-    adjectivepresent: function(x) {
-        return isTense(x, "Present");
-    },
-    adjectivepast: function(x) {
-        return isTense(x, "Past");
-    },
-    adjectiveteadverb: function(x) {
-        return isTense(x, "て-form");
-    },
-
-    adjectiveaffirmative: function(x) {
-        return x.conjugation.affirmative === true;
-    },
-    adjectivenegative: function(x) {
-        return x.conjugation.affirmative === false;
-    },
-
-    adjectiveplain: function(x) {
-        return x.conjugation.polite === false;
-    },
-    adjectivepolite: function(x) {
-        return x.conjugation.polite === true;
-    },
-
-    adjectivei: function(x) {
-        return x.wordJSON.type == "i";
-    },
-    adjectivena: function(x) {
-        return x.wordJSON.type == "na";
-    },
-    adjectiveirregular: function(x) {
-        return x.wordJSON.type == "ira";
+    adjectives: {
+        adjectivepresent: function(x) {
+            return isNotTense(x, "Present");
+        },
+        adjectivepast: function(x) {
+            return isNotTense(x, "Past");
+        },
+        adjectiveadverb: function(x) {
+            return isNotTense(x, "Adverb");
+        },
+    
+        adjectiveaffirmative: function(x) {
+            return x.conjugation.affirmative !== true;
+        },
+        adjectivenegative: function(x) {
+            return x.conjugation.affirmative !== false;
+        },
+    
+        adjectiveplain: function(x) {
+            return x.conjugation.polite !== false;
+        },
+        adjectivepolite: function(x) {
+            return x.conjugation.polite !== true;
+        },
+    
+        adjectivei: function(x) {
+            return x.wordJSON.type != "i";
+        },
+        adjectivena: function(x) {
+            return x.wordJSON.type != "na";
+        },
+        adjectiveirregular: function(x) {
+            return x.wordJSON.type != "ira";
+        }
     }
 };
 

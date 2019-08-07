@@ -455,10 +455,10 @@ function getAllConjugations(wordJSON) {
 
 class Word {
   // conjugation is Conjugation class object
-  constructor(wordJSON, conjugation, probability){
+  // has probablity property added by probability function
+  constructor(wordJSON, conjugation){
     this.wordJSON = wordJSON;
     this.conjugation = conjugation;
-    this.probability = probability;
   }
 }
 
@@ -477,7 +477,8 @@ function updateProbabilites(currentWords, wordsToIgnore) {
   let wordCount = 0, totalProbability = 0;
   for (let i = 0; i < currentWords.length; i++) {
     wordCount += currentWords[i].length;
-    for (let j = 0; j < currentWords[0].length; j++) {
+    for (let j = 0; j < currentWords[0].length; j++)
+    {
       // add probabilities here
     }
   }
@@ -780,6 +781,53 @@ function optionsMenuInit() {
   optionsView.addEventListener("click", adjPresAffPlainCheckError);
 }
 
+function setProbabilitiesEven(currentWordList) {
+  let count = 0;
+  for (let i = 0; i < currentWordList.length; i++) {
+    count += currentWordList[i].length;
+  }
+
+  let amount = 1/count;
+  for (let i = 0; i < currentWordList.length; i++) {
+    for (let j = 0; j < currentWordList[i].length; j++) {
+      currentWordList[i][j].probability = amount;
+    }
+  }
+}
+
+import {optionRemoveFunctions, showFurigana, showEmojis} from "./optionfunctions.js";
+
+function applySettings(settings, completeWordList) {
+  showFurigana(settings.furigana);
+  showEmojis(settings.emoji);
+
+  let currentWordList = createArrayOfArrays(completeWordList.length);
+
+  let verbRegex = /^verb.+/, adjectiveRegex = /^adjective.+/;
+  if (settings.verb !== false) {
+    let verbOptions = Object.keys(settings).filter(el => verbRegex.test(el));
+    currentWordList[0] = [...completeWordList[0]];
+    for (let i = 0; i < verbOptions.length; i++) {
+      if (settings[verbOptions[i]] === false) {
+        currentWordList[0] = currentWordList[0].filter(optionRemoveFunctions.verbs[verbOptions[i]]);
+      }
+    }
+  }
+
+  if (settings.adjective !== false) {
+    let adjectiveOptions = Object.keys(settings).filter(el => adjectiveRegex.test(el));
+    currentWordList[1] = [...completeWordList[1]];
+    for (let i = 0; i < adjectiveOptions.length; i++) {
+      if (settings[adjectiveOptions[i]] === false) {
+        currentWordList[1] = currentWordList[1].filter(optionRemoveFunctions.adjectives[adjectiveOptions[i]]);
+      }
+    }
+  }
+
+  setProbabilitiesEven(currentWordList);
+  return currentWordList;
+}
+
 // state has currentWord, previousCorrect, settingsOpen, settings, completeWordList, currentWordList
 // settings has filters property which is an array of keys for filterFunctions to apply on completeWordList to get currentWordList
 // can change state by pressing enter on input field, or by opening / closing settings
@@ -795,12 +843,13 @@ class ConjugationApp {
     input.focus();
 
     this.state = {};
-    this.state.completeWordList = this.state.currentWordList = createWordList(getWords());
-    this.state.currentWord = pickRandomWord(this.state.currentWordList);
-    updateCurrentWord(this.state.currentWord);
-
+    this.state.completeWordList = createWordList(getWords());
     this.state.settingsOpen = false;
     this.state.settings = localStorage.getItem("settings") ? JSON.parse(localStorage.getItem("settings")) : defaultSettings();
+
+    this.state.currentWordList = applySettings(this.state.settings, this.state.completeWordList);
+    this.state.currentWord = pickRandomWord(this.state.currentWordList);
+    updateCurrentWord(this.state.currentWord);
 
     document.getElementsByTagName("input")[0].addEventListener("keydown", e => this.inputKeyPress(e));
     document.getElementById("options-button").addEventListener("click", e => this.settingsButtonClicked(e));
@@ -883,6 +932,8 @@ class ConjugationApp {
         this.state.settings[input.name] = input.checked;
       }
       localStorage.setItem("settings", JSON.stringify(this.state.settings));
+      this.state.currentWordList = applySettings(this.state.settings, this.state.completeWordList);
+      // if clicked settings from correct/neutral state, need to load new word immediately without adding to score
 
       document.getElementById("main-view").style.display = "block";
       document.getElementById("options-view").style.display = "none";
