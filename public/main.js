@@ -82,6 +82,15 @@ function conjugationInqueryFormatting(conjugation) {
   return newString;
 }
 
+function loadNewWord(wordList, score) {
+  let word = pickRandomWord(wordList);
+  updateCurrentWord(word);
+  addToScore(score);
+  document.getElementsByTagName("input")[0].focus(); 
+
+  return word;
+}
+
 function updateCurrentWord(word) {
   document.getElementById("verb-box").style.background = "none";
   document.getElementById("verb-text").innerHTML = "<ruby>" + word.wordJSON.kanji + "</ruby>";
@@ -542,6 +551,9 @@ function updateState(state, action) {
 }
 
 function addToScore(amount = 1) {
+  if (amount == 0) {
+    return;
+  }
   let max = document.getElementById("max-streak-text");
   let current = document.getElementById("current-streak-text");
 
@@ -840,7 +852,6 @@ class ConjugationApp {
     document.getElementById("max-streak-text").textContent = localStorage.getItem("maxScore") || "0";
     let input = document.getElementsByTagName("input")[0]
     wanakana.bind(input);
-    input.focus();
 
     this.state = {};
     this.state.completeWordList = createWordList(getWords());
@@ -848,8 +859,7 @@ class ConjugationApp {
     this.state.settings = localStorage.getItem("settings") ? JSON.parse(localStorage.getItem("settings")) : defaultSettings();
 
     this.state.currentWordList = applySettings(this.state.settings, this.state.completeWordList);
-    this.state.currentWord = pickRandomWord(this.state.currentWordList);
-    updateCurrentWord(this.state.currentWord);
+    this.state.currentWord = loadNewWord(this.state.currentWordList, 0);
 
     document.getElementsByTagName("input")[0].addEventListener("keydown", e => this.inputKeyPress(e));
     document.getElementById("options-button").addEventListener("click", e => this.settingsButtonClicked(e));
@@ -874,31 +884,36 @@ class ConjugationApp {
       let keyCode = (e.keyCode ? e.keyCode : e.which);
       if (keyCode == '13') {
         document.body.removeEventListener("keydown", this.onAcceptIncorrectHandler);
-        document.getElementsByTagName("input")[0].disabled = false;
-        document.getElementById("press-any-key-text").style.display = "none";
-        document.getElementById("status-box").style.display = "none";
-        document.getElementById("current-streak-text").textContent = "0";
-        this.updateState({currentWord: pickRandomWord(this.state.currentWordList)});
+        this.resetMainView();
       }
     }
 
     this.onAcceptIncorrectHandler = onAcceptIncorrect.bind(this);
   }
 
+  resetMainView() {
+    document.getElementsByTagName("input")[0].disabled = false;
+    document.getElementById("press-any-key-text").style.display = "none";
+    document.getElementById("status-box").style.display = "none";
+    document.getElementById("current-streak-text").textContent = "0";
+    this.state.currentWord = loadNewWord(this.state.currentWordList, 0);
+  }
+
   inputKeyPress(e) {
     let keyCode = (e.keyCode ? e.keyCode : e.which);
     if (keyCode == '13') {
       let inputElt = document.getElementsByTagName("input")[0];
-
-      //if (inputElt.value.length == 0) return;
       e.stopPropagation();
-
-      //let correctText = convertFuriganaToHiragana(this.state.currentWord.conjugation.conjugation);
       updateStatusBoxes(this.state.currentWord, inputElt.value);
+
+      // update probabilities before next word is chosen so don't choose same word
+
       if (inputElt.value == this.state.currentWord.conjugation.conjugation) {
-        this.updateState({currentWord: pickRandomWord(this.state.currentWordList), previousCorrect: true});
+        this.state.currentWord = loadNewWord(this.state.currentWordList, 1);
       } else {
-        this.updateState({previousCorrect: false});
+        document.getElementsByTagName("input")[0].disabled = true;
+        document.getElementById("press-any-key-text").style.display = "table-cell";
+        document.body.addEventListener("keydown", this.onAcceptIncorrectHandler);
       }
 
       inputElt.value = "";
@@ -928,35 +943,25 @@ class ConjugationApp {
     e.preventDefault();
     
     let inputs = document.getElementById("options-form").querySelectorAll('[type="checkbox"]');
-      for (let input of Array.from(inputs)) {
-        this.state.settings[input.name] = input.checked;
-      }
-      localStorage.setItem("settings", JSON.stringify(this.state.settings));
-      this.state.currentWordList = applySettings(this.state.settings, this.state.completeWordList);
-      // if clicked settings from correct/neutral state, need to load new word immediately without adding to score
+    for (let input of Array.from(inputs)) {
+      this.state.settings[input.name] = input.checked;
+    }
+    
+    localStorage.setItem("settings", JSON.stringify(this.state.settings));
+    this.state.currentWordList = applySettings(this.state.settings, this.state.completeWordList);
+    this.resetMainView();
+    // if clicked settings from correct/neutral state, need to load new word immediately without adding to score
 
-      document.getElementById("main-view").style.display = "block";
-      document.getElementById("options-view").style.display = "none";
+    document.getElementById("main-view").style.display = "block";
+    document.getElementById("options-view").style.display = "none";
   }
 
   updateState(action) {
-    let {completeWordList, currentWordList, currentWord, previousCorrect, settingsOpen, settings} = this.state;
+    let {completeWordList, currentWordList, currentWord, settings} = this.state;
     let newState = Object.assign({}, this.state, action);
     console.log(this.state);
     console.log(action);
     console.log(newState);
-
-    if (action.currentWord) {
-      if (newState.previousCorrect === true) {
-        addToScore();
-      }
-      updateCurrentWord(newState.currentWord);
-      document.getElementsByTagName("input")[0].focus();
-    } else if (action.previousCorrect === false) {
-      document.getElementsByTagName("input")[0].disabled = true;
-      document.getElementById("press-any-key-text").style.display = "table-cell";
-      document.body.addEventListener("keydown", this.onAcceptIncorrectHandler);
-    }
 
     this.state = newState;
   }
