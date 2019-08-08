@@ -479,18 +479,80 @@ function createArrayOfArrays(length) {
   return array;
 }
 
-// words to ignore will be object with properties word, roundssinceshown, amountToAddFunction
-// if amount of current words is less than 
-function updateProbabilites(currentWords, wordsToIgnore) {
-  const roundToWait = 4;
-  let wordCount = 0, totalProbability = 0;
+class WordRecentlySeen {
+  constructor(word, wasCorrect) {
+    this.word = word;
+    this.wasCorrect = wasCorrect;
+  }
+}
+
+function findMinProb(currentWords) {
+  let min = 2;
   for (let i = 0; i < currentWords.length; i++) {
-    wordCount += currentWords[i].length;
-    for (let j = 0; j < currentWords[0].length; j++)
-    {
-      // add probabilities here
+    for (let j = 0; j < currentWords[i].length; j++) {
+      min = currentWords[i][j].probability < min && currentWords[i][j].probability != 0 ?
+      currentWords[i][j].probability : min;
     }
   }
+  return min;
+}
+
+function findMaxProb(currentWords) {
+  let max = 0;
+  for (let i = 0; i < currentWords.length; i++) {
+    for (let j = 0; j < currentWords[i].length; j++) {
+      max = currentWords[i][j].probability > max ? currentWords[i][j].probability : max;
+    }
+  }
+  return max;
+}
+
+// words to ignore will be object with properties word, roundssinceshown, amountToAddFunction
+// if amount of current words is less than 
+function updateProbabilites(currentWords, wordsRecentlySeen, currentWord, currentWordMissed) {
+  // not worth/possible if small pool of words
+  const roundToWait = 2;
+  if (currentWords[0].length + currentWords[1].length < roundToWait * 3) {
+    return;
+  }
+
+  const minProbModifier = 0.5;
+  if (wordsRecentlySeen.length >= roundToWait) {
+    let wordToDoDifferent = wordsRecentlySeen.shift();
+
+    if (wordToDoDifferent.wasCorrect) {
+      let min = findMinProb(currentWords);
+      wordToDoDifferent.word.probability = min * minProbModifier;
+
+    } else {
+      // 10 will always be enough to raise the probability a lot, without zeroing out other number values
+      wordToDoDifferent.word.probability = 10;
+    }
+  }
+
+  wordsRecentlySeen.push(new WordRecentlySeen(currentWord, currentWordMissed));
+  currentWord.probability = 0;
+
+  const defaultProbModifier = 1.1
+  let totalProbability = 0;
+  // update probabilities
+  for (let i = 0; i < currentWords.length; i++) {
+    for (let j = 0; j < currentWords[i].length; j++)
+    {
+      currentWords[i][j].probability *= defaultProbModifier;
+      totalProbability += currentWords[i][j].probability;
+    }
+  }
+
+  // normalize probabilities
+  for (let i = 0; i < currentWords.length; i++) {
+    for (let j = 0; j < currentWords[i].length; j++)
+    {
+      currentWords[i][j].probability /= totalProbability;
+    }
+  }
+
+  console.log(currentWords);
 }
 
 // returns 2D array [verbarray, adjarray]
@@ -616,7 +678,7 @@ function checkToEnableBackButton() {
     }
   }
 
-  console.log("I tried to enable the back button");
+  //console.log("I tried to enable the back button");
   document.getElementById("back-button").disabled = false;
 }
 
@@ -637,7 +699,7 @@ function toggleError(errorElement, errorMessage, enabled) {
     let backButton = document.getElementById("back-button");
     errorElement.textContent = errorMessage;
     toggleDisplayNone(errorElement, false);
-    console.log("I tried to disable back button");
+    //console.log("I tried to disable back button");
     backButton.disabled = true;
   } else {
     toggleDisplayNone(errorElement, true);
@@ -860,6 +922,7 @@ class ConjugationApp {
 
     this.state.currentWordList = applySettings(this.state.settings, this.state.completeWordList);
     this.state.currentWord = loadNewWord(this.state.currentWordList, 0);
+    this.state.wordsRecentlySeen = [];
 
     document.getElementsByTagName("input")[0].addEventListener("keydown", e => this.inputKeyPress(e));
     document.getElementById("options-button").addEventListener("click", e => this.settingsButtonClicked(e));
@@ -907,8 +970,11 @@ class ConjugationApp {
       updateStatusBoxes(this.state.currentWord, inputElt.value);
 
       // update probabilities before next word is chosen so don't choose same word
+      let inputWasCorrect = inputElt.value == this.state.currentWord.conjugation.conjugation;
+      updateProbabilites(this.state.currentWordList, this.state.wordsRecentlySeen,
+        this.state.currentWord, inputWasCorrect);
 
-      if (inputElt.value == this.state.currentWord.conjugation.conjugation) {
+      if (inputWasCorrect) {
         this.state.currentWord = loadNewWord(this.state.currentWordList, 1);
       } else {
         document.getElementsByTagName("input")[0].disabled = true;
