@@ -1,0 +1,25 @@
+{
+  "name": "japanese-conjugation",
+  "version": "1.0.0",
+  "description": "japanese verb and adjective conjugation practice app",
+  "main": "server.js",
+  "dependencies": {
+    "express": "^4.17.1",
+    "mysql": "^2.17.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/baileysnyder/japanese-conjugation.git"
+  },
+  "author": "Bailey Snyder",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/baileysnyder/japanese-conjugation/issues"
+  },
+  "homepage": "https://github.com/baileysnyder/japanese-conjugation#readme"
+}

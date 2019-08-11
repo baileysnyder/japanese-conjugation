@@ -1,27 +1,9 @@
-// make sure design is responsive
-// states: not incorrect waiting for input. incorrect. settings
-
-// adjectives: casual/polite for each, [default] present affirmative, present negative, past affirmative, past negative, adverb
-// verbs: casual/polite for each, [defualt] present affirmative, present negative, past affirmative, past negative, te form
-
-// parent abstract word class has fields: kanji(with furigana), definition, partOfSpeech(adj, verb)
-// affirmTrueNegFalse, plainTruePoliteFalse, verbType(present, past, etc)
-// child classes ru, u, ir, i, na define their own methods for handling conjugation. dumb because only conjugate once
-
-// settings: show furigana, verbs, adjectives
-// verbs: plain, polite | affirmative, negative | then all options. Give message must select 1 from each category
-
-// could increase probablity of each verb after each round. If correct, wait 5 rounds to start increasing again.
-// if incorrect, wait 5 rounds and then add like 5 to probability
-// standard increase per round is 0.1
-// make it less likely to pick same category next round
-// in prob array just store as the separate categories instead of as the words
-
 // update all weights, sum and divide by sum to keep between 0 and 1. keep ordered. 
 // method 1: add all weights n, normalize all weights n, pick number between 0 1 and keep summing weights until reach O(3n)
-// could store sum until each point, but requires extra array to make it O(2n + log n)\
+// could store sum until each point, but requires extra array to make it O(2n + log n)
 
-// don't want to store redundant kanji, descriptions, etc. If all of that is stored in one object, then instances just have reference to it
+// since the weights are mostly only used to make things repeat after x amount of rounds, they are overkill
+// would be less work to just wait x rounds and immeditely show what you missed, without updating any weights.
 "use strict";
 
 const defaultSettings = () => {
@@ -226,8 +208,10 @@ function changeUtoA(c) {
 function changeToPastPlain(c) {
   if (c == "す") {
     return "した";
-  } else if (c == "く" || c == "ぐ") {
-    return "いだ";
+  } else if (c == "く") {
+    return "いた";
+  } else if (c == "ぐ") {
+    return "いだ"
   } else if (c == "む" || c == "ぶ" || c == "ぬ") {
     return "んだ";
   } else if (c == "る" || c == "う" || c == "つ") {
@@ -421,9 +405,6 @@ let conjugationFunctions = {
 };
 
 function convertFuriganaToHiragana(word) {
-  // remove anything between rb tags if exists
-  // remove rt tags but leave text in middle
-  // rt tag may have rb tag that was removed before it (empty) instead of kanji
   return word.replace(/<ruby>|<\/ruby>|.?<rt>|<\/rt>/g, "");
 }
 
@@ -575,12 +556,18 @@ function createWordList(JSONWords) {
   return wordList;
 }
 
-// eventually hook up to database
 // 0 = verbs 1 = adjectives
 // storing in array instead of object to make parsing faster
-import {verbs, adjectives} from "./verbs.js"
+// import {verbs, adjectives} from "./verbs.js"
 function getWords() {
-  return [verbs, adjectives];
+  let req = new XMLHttpRequest();
+  req.onload = function() {
+    let words = JSON.parse(this.responseText);
+    new ConjugationApp([words.verbs, words.adjectives]);
+  };
+  req.open("GET", "getwords.php", true);
+  req.send();
+  //return [verbs, adjectives];
 }
 
 function pickRandomWord(wordList) {
@@ -910,13 +897,13 @@ function applySettings(settings, completeWordList) {
 // if got incorrect and pressed enter, now previousCorrect is still false, but currentWord is different
 // add event listener when get wrong on body for enter
 class ConjugationApp {
-  constructor() {
+  constructor(words) {
     document.getElementById("max-streak-text").textContent = localStorage.getItem("maxScore") || "0";
     let input = document.getElementsByTagName("input")[0]
     wanakana.bind(input);
 
     this.state = {};
-    this.state.completeWordList = createWordList(getWords());
+    this.state.completeWordList = createWordList(words);
     this.state.settingsOpen = false;
     this.state.settings = localStorage.getItem("settings") ? JSON.parse(localStorage.getItem("settings")) : defaultSettings();
 
@@ -1033,7 +1020,7 @@ class ConjugationApp {
   }
 }
 
-new ConjugationApp();
+getWords();
 //init();
 //updateCurrentWord("働<rt>はたら</rt>く", "work", "");
 //console.log(convertFuriganaToHiragana("弾<rt>ひ</rt>く"));
