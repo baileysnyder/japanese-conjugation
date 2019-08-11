@@ -899,7 +899,7 @@ function applySettings(settings, completeWordList) {
 class ConjugationApp {
   constructor(words) {
     document.getElementById("max-streak-text").textContent = localStorage.getItem("maxScore") || "0";
-    let input = document.getElementsByTagName("input")[0]
+    let input = document.getElementsByTagName("input")[0];
     wanakana.bind(input);
 
     this.state = {};
