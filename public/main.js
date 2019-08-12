@@ -5,6 +5,8 @@
 // since the weights are mostly only used to make things repeat after x amount of rounds, they are overkill
 // would be less work to just wait x rounds and immeditely show what you missed, without updating any weights.
 "use strict";
+let isTouch = (('ontouchstart' in window) || (navigator.msMaxTouchPoints > 0));
+document.getElementById("press-any-key-text").textContent = isTouch ? "Tap to continue" : "Press Enter/Return to continue";
 
 const defaultSettings = () => {
   let inputs = document.getElementById("options-form").querySelectorAll('[type="checkbox"]');
@@ -58,7 +60,10 @@ function loadNewWord(wordList, score) {
   let word = pickRandomWord(wordList);
   updateCurrentWord(word);
   addToScore(score);
-  document.getElementsByTagName("input")[0].focus(); 
+  if (!isTouch) {
+    document.getElementsByTagName("input")[0].focus(); 
+  }
+
 
   return word;
 }
@@ -771,15 +776,15 @@ function addToScore(amount = 1) {
 function typeToWordBoxColor(type) {
   switch (type) {
     case "u":
-      return "rgb(214, 117, 0)";
+      return "rgb(245, 134, 0)";
     case "ru":
-      return "rgb(0, 110, 220)";
+      return "rgb(0, 90, 220)";
     case "irv":
       return "gray";
     case "ira":
       return "gray";
     case "i":
-      return "rgb(0, 186, 252)";
+      return "rgb(0, 160, 210)";
     case "na":
       return "rgb(143, 73, 40)";
   }
@@ -795,7 +800,7 @@ function updateStatusBoxes(word, entryText) {
   } else {
     document.getElementById("verb-box").style.background = typeToWordBoxColor(word.wordJSON.type);
     document.getElementById("verb-type").textContent = wordTypeToDisplayText(word.wordJSON.type);
-    statusBox.style.background = "rgb(215, 5, 5)";
+    statusBox.style.background = "rgb(218, 5, 5)";
     document.getElementById("status-text").innerHTML = (entryText == "" ? "_" : entryText) +
     " ×<br>" + word.conjugation.conjugation + " ○";
   }
@@ -1068,15 +1073,26 @@ class ConjugationApp {
     optionsMenuInit();
 
     // need to define this here so the event handler can be removed from within the function and still reference this
-    let onAcceptIncorrect = function(e) {
+    let onAcceptIncorrectKey = function(e) {
       let keyCode = (e.keyCode ? e.keyCode : e.which);
       if (keyCode == '13') {
-        document.body.removeEventListener("keydown", this.onAcceptIncorrectHandler);
+        document.body.removeEventListener("keydown", this.onAcceptIncorrectKeyHandler);
+        document.body.removeEventListener("touchend", this.onAcceptIncorrectTouchHandler);
         this.resetMainView();
       }
     }
 
-    this.onAcceptIncorrectHandler = onAcceptIncorrect.bind(this);
+    let onAcceptIncorrectTouch = function(e) {
+      if (e.target != document.getElementById("options-button")) {
+        document.body.removeEventListener("keydown", this.onAcceptIncorrectKeyHandler);
+        document.body.removeEventListener("touchend", this.onAcceptIncorrectTouchHandler);
+        this.resetMainView();
+      }
+
+    }
+
+    this.onAcceptIncorrectKeyHandler = onAcceptIncorrectKey.bind(this);
+    this.onAcceptIncorrectTouchHandler = onAcceptIncorrectTouch.bind(this);
   }
 
   resetMainView() {
@@ -1104,7 +1120,8 @@ class ConjugationApp {
       } else {
         document.getElementsByTagName("input")[0].disabled = true;
         document.getElementById("press-any-key-text").style.display = "table-cell";
-        document.body.addEventListener("keydown", this.onAcceptIncorrectHandler);
+        document.body.addEventListener("keydown", this.onAcceptIncorrectKeyHandler);
+        document.body.addEventListener("touchend", this.onAcceptIncorrectTouchHandler);
       }
 
       inputElt.value = "";
@@ -1112,6 +1129,9 @@ class ConjugationApp {
   }
 
   settingsButtonClicked(e) {
+    document.body.removeEventListener("keydown", this.onAcceptIncorrectKeyHandler);
+    document.body.removeEventListener("touchend", this.onAcceptIncorrectTouchHandler);
+
     let inputs = document.getElementById("options-form").querySelectorAll('[type="checkbox"]');
     for (let input of Array.from(inputs)) {
       input.checked = this.state.settings[input.name];
@@ -1215,28 +1235,8 @@ function onResizeBody() {
   } else {
     resizeBetweenBounds(vals1366,vals1920);
   }
-  /*
-  //1920 to 1366 width = 768
-  let minPix = 320, maxPix = 1920;
-  let clamped = clampNumber(window.innerWidth, minPix, maxPix);
-  let percentage = (clamped - minPix) / (maxPix - minPix);
-  document.getElementById("toppest-container").style.width = "768px";
-  //document.getElementById("toppest-container").style.width = lerp(100, 40, percentage) + "%";
-
-  let remAtMinPix = 10, remAtMaxPix = 22;
-  let smallestRemFraction = remAtMinPix / minPix, largestRemFraction = remAtMaxPix / maxPix;
-  let currentFraction = lerp(smallestRemFraction, largestRemFraction, percentage);
-
-  //document.documentElement.style.fontSize = (window.innerWidth * currentFraction) + "px";
-  document.documentElement.style.fontSize = "20px";
-  // -2 to -22
-  document.getElementById("verb-box").style.top = lerp(-0.09, -1, percentage) + "rem";
-  */
 }
 
 window.addEventListener("resize", onResizeBody);
 onResizeBody();
 toggleDisplayNone(document.getElementById("toppest-container"), false);
-//init();
-//updateCurrentWord("働<rt>はたら</rt>く", "work", "");
-//console.log(convertFuriganaToHiragana("弾<rt>ひ</rt>く"));

@@ -77,7 +77,7 @@ p {
     margin: 0;
     border-radius: 0.64rem;
     padding: 0.73rem;
-    box-shadow: 0.36rem 0.36rem 0.36rem rgb(28, 28, 28);
+    box-shadow: 0.3rem 0.3rem 0.36rem rgb(28, 28, 28);
     background: rgb(44, 43, 41);
 }
 
@@ -243,6 +243,7 @@ h2 {
     margin-bottom: 0.45rem;
     text-align: center;
     color: var(--whiteTextColor);
+    font-size: 1.1rem;
 }
 
 #options-view {
@@ -265,6 +266,18 @@ h2 {
 .must-choose-one-text {
     float:right;
     color: rgb(236, 51, 51);
+    text-align: right;
+}
+
+#options-form td:not(.must-choose-one-text) {
+    width: 35%;
+}
+
+#options-form input {
+    min-width: 13px;
+    min-height: 13px;
+    width: 0.6rem;
+    height: 0.6rem;
 }
 
 .options-indent {
