@@ -771,7 +771,7 @@ function addToScore(amount = 1) {
 function typeToWordBoxColor(type) {
   switch (type) {
     case "u":
-      return "rgb(201, 151, 0)";
+      return "rgb(214, 117, 0)";
     case "ru":
       return "rgb(0, 110, 220)";
     case "irv":
@@ -779,9 +779,9 @@ function typeToWordBoxColor(type) {
     case "ira":
       return "gray";
     case "i":
-      return "rgb(0, 193, 214)";
+      return "rgb(0, 186, 252)";
     case "na":
-      return "sienna";
+      return "rgb(143, 73, 40)";
   }
 }
 
@@ -795,7 +795,7 @@ function updateStatusBoxes(word, entryText) {
   } else {
     document.getElementById("verb-box").style.background = typeToWordBoxColor(word.wordJSON.type);
     document.getElementById("verb-type").textContent = wordTypeToDisplayText(word.wordJSON.type);
-    statusBox.style.background = "rgb(220, 5, 5)";
+    statusBox.style.background = "rgb(215, 5, 5)";
     document.getElementById("status-text").innerHTML = (entryText == "" ? "_" : entryText) +
     " ×<br>" + word.conjugation.conjugation + " ○";
   }
@@ -829,7 +829,7 @@ function toggleDisplayNone(element, enabled) {
   if (enabled) {
     addClassName(element, "display-none");
   } else {
-    element.className = element.className.replace(" display-none", "");
+    element.className = element.className.replace("display-none", "");
   }
 }
 
@@ -1160,6 +1160,83 @@ class ConjugationApp {
 }
 
 getWords();
+
+function clampNumber(number, min, max) {
+  if (number < min) {
+    return min;
+  } else if (number > max) {
+    return max;
+  } else {
+    return number;
+  }
+}
+
+function lerp(value1, value2, amount) {
+  amount = amount < 0 ? 0 : amount;
+  amount = amount > 1 ? 1 : amount;
+  return value1 + (value2 - value1) * amount;
+}
+
+function resizeBetweenBounds(mins, maxs) {
+  let clamped = clampNumber(window.innerWidth, mins.pixWidth, maxs.pixWidth);
+  let percentage = (clamped - mins.pixWidth) / (maxs.pixWidth - mins.pixWidth);
+  document.getElementById("toppest-container").style.width = lerp(mins.widthPercent, maxs.widthPercent, percentage) + "%";
+
+  let smallestRemFraction = mins.font / mins.pixWidth, largestRemFraction = maxs.font / maxs.pixWidth;
+  let currentFraction = lerp(smallestRemFraction, largestRemFraction, percentage);
+
+  document.documentElement.style.fontSize = (window.innerWidth * currentFraction) + "px";
+  document.getElementById("verb-box").style.top = lerp(mins.verbBoxTop, maxs.verbBoxTop, percentage) + "rem";
+  document.getElementById("verb-box").style.marginBottom = 1 + lerp(mins.verbBoxTop, maxs.verbBoxTop, percentage) + "rem";
+}
+
+function onResizeBody() {
+  let vals320 = {
+    pixWidth: 320,
+    font: 12,
+    widthPercent: 100,
+    verbBoxTop: -0.09
+  }
+  let vals1366 = {
+    pixWidth: 1366,
+    font: 20,
+    widthPercent: 50,
+    verbBoxTop: -0.91
+  }
+  let vals1920 = {
+    pixWidth: 1920,
+    font: 22,
+    widthPercent: 38,
+    verbBoxTop: -1
+  }
+
+  if (window.innerWidth < 1366) {
+    resizeBetweenBounds(vals320, vals1366);
+  } else {
+    resizeBetweenBounds(vals1366,vals1920);
+  }
+  /*
+  //1920 to 1366 width = 768
+  let minPix = 320, maxPix = 1920;
+  let clamped = clampNumber(window.innerWidth, minPix, maxPix);
+  let percentage = (clamped - minPix) / (maxPix - minPix);
+  document.getElementById("toppest-container").style.width = "768px";
+  //document.getElementById("toppest-container").style.width = lerp(100, 40, percentage) + "%";
+
+  let remAtMinPix = 10, remAtMaxPix = 22;
+  let smallestRemFraction = remAtMinPix / minPix, largestRemFraction = remAtMaxPix / maxPix;
+  let currentFraction = lerp(smallestRemFraction, largestRemFraction, percentage);
+
+  //document.documentElement.style.fontSize = (window.innerWidth * currentFraction) + "px";
+  document.documentElement.style.fontSize = "20px";
+  // -2 to -22
+  document.getElementById("verb-box").style.top = lerp(-0.09, -1, percentage) + "rem";
+  */
+}
+
+window.addEventListener("resize", onResizeBody);
+onResizeBody();
+toggleDisplayNone(document.getElementById("toppest-container"), false);
 //init();
 //updateCurrentWord("働<rt>はたら</rt>く", "work", "");
 //console.log(convertFuriganaToHiragana("弾<rt>ひ</rt>く"));

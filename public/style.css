@@ -6,6 +6,7 @@ body {
 h1 {
     text-align: center;
     color: var(--whiteTextColor);
+    font-size: 1.5rem;
 }
 
 p {
@@ -19,16 +20,17 @@ p {
 
 .streak p {
     margin: 0.3em;
+    font-size: 0.75rem;
 }
 
 #current-streak {
-    left: 5px;
+    left: 0.23rem;
     float: left;
 }
 
 #current-streak-text, #max-streak-text {
     margin: 0;
-    font-size: 22px;
+    font-size: 1rem;
 }
 
 .grow-animation {
@@ -63,17 +65,19 @@ p {
 }
 
 #max-streak {
-    right: 5px;
+    right: 0.23rem;
     float: right;
 }
 
-#top-container {
-    max-width: 700px;
-    min-width: 320px;
+#toppest-container {
     margin: auto;
-    border-radius: 14px;
-    padding: 16px;
-    box-shadow: 8px 8px 8px rgb(28, 28, 28);
+}
+
+#top-container {
+    margin: 0;
+    border-radius: 0.64rem;
+    padding: 0.73rem;
+    box-shadow: 0.36rem 0.36rem 0.36rem rgb(28, 28, 28);
     background: rgb(44, 43, 41);
 }
 
@@ -86,62 +90,61 @@ p {
 #verb-box {
     display: inline-block;
     /*background: rgb(165, 100, 40);*/
-    padding: 10px;
-    border-radius: 25px;
+    padding: 0.45rem;
+    border-radius: 1.14rem;
     /* Using position relative because setting negative margins caused alignment to rely on streak text above*/
     position: relative;
-    top: -22px;
 }
 
 #verb-box p {
     display: inline-block;
-    margin-left: 26px;
-    margin-right: 26px;
+    margin-left: 1.18rem;
+    margin-right: 1.18rem;
 }
 
 #verb-container {
-    margin-top: 0px;
+    margin-top: 0;
     text-align: center;
-    margin-bottom: -10px;
+    margin-bottom: -0.45rem;
 }
 
 #verb-text {
-    font-size: 46px;
+    font-size: 2.1rem;
     margin-top: 0;
-    margin-bottom: -6px;
+    margin-bottom: -0.27rem;
 }
 
 #definition {
-    font-size: 18px;
+    font-size: 0.8rem;
     margin-top: 0;
-    margin-bottom: 4px;
+    margin-bottom: 0.18rem;
 }
 
 /* Wait until select font to fix issue where hiragana causes all elements below to move down slightly */
 #verb-type {
-    min-height: 23px;
-    font-size: 20px;
+    min-height: 1.05rem;
+    font-size: 0.91rem;
     margin: 0;
 }
 
 #conjugation-inquery-text {
-    font-size: 30px;
-    margin: 10px;
+    font-size: 1.36rem;
+    margin: 0.45rem;
 }
 
 #status-container {
     text-align: center;
-    margin: 24px;
-    height: 86px;
+    margin: 1.09rem;
+    height: 3.91rem;
 }
 
 #status-box {
     /* change between inline-flex and none */
     display: none;
     background: green;
-    border-radius: 20px;
-    width: 66%;
-    height: 88px;
+    border-radius: 0.91rem;
+    min-width: 66%;
+    height: 4rem;
     justify-content: center;
     flex-direction: column;
 }
@@ -149,14 +152,16 @@ p {
 #status-text {
     line-height: 1.5;
     vertical-align: middle;
-    font-size: 24px;
+    font-size: 1.09rem;
     color: white;
+    margin-left: 0.8rem;
+    margin-right: 0.8rem;
 }
 
 #input-container {
     text-align: center;
-    padding-top: 8px;
-    margin: 10px;
+    padding-top: 0.36rem;
+    margin: 0.45rem;
 }
 
 #main-text-input, #settings-child-container {
@@ -164,14 +169,14 @@ p {
 }
 
 #main-text-input {
-    border-radius: 100px;
-    font-size: 22px;
-    border: 1.5px;
+    border-radius: 5rem;
+    font-size: 1rem;
+    border: 0.068rem;
     background: white;
-    padding-top: 6px;
-    padding-bottom: 4px;
-    padding-left: 10px;
-    padding-right: 10px;
+    padding-top: 0.27rem;
+    padding-bottom: 0.18rem;
+    padding-left: 0.45rem;
+    padding-right: 0.45rem;
 }
 
 #main-text-input:hover:not(:focus):not(:disabled) {
@@ -184,7 +189,7 @@ p {
 
 #settings-container {
     text-align: center;
-    margin: 0px;
+    margin: 0;
 }
 
 #settings-child-container {
@@ -204,17 +209,17 @@ button {
     float: right;
     background: rgb(63, 63, 63);
     border: none;
-    box-shadow: 0px 1px 0px rgb(35, 35, 35), 1px 0px 0px rgb(35, 35, 35),
-    2px 1px 0px rgb(35, 35, 35), 1px 2px 0px rgb(35, 35, 35),
-    3px 2px 0px rgb(35, 35, 35), 2px 3px 0px rgb(35, 35, 35);
-    border-radius: 20px;
+    box-shadow: 0 0.045rem 0 rgb(35, 35, 35), 0.045rem 0 0 rgb(35, 35, 35),
+    0.09rem 0.045rem 0 rgb(35, 35, 35), 0.045rem 0.09rem 0 rgb(35, 35, 35),
+    0.136rem 0.09rem 0 rgb(35, 35, 35), 0.09rem 0.136rem 0 rgb(35, 35, 35);
+    border-radius: 0.4rem;
     color: var(--whiteTextColor);
-    padding-top: 4px;
-    padding-bottom: 4px;
-    padding-right: 6px;
-    padding-left: 12px;
-    font-size: 16px;
-    margin-right:-6px;
+    padding-top: 0.18rem;
+    padding-bottom: 0.18rem;
+    padding-right: 0.27rem;
+    padding-left: 0.55rem;
+    font-size: 0.73rem;
+    margin-right:-0.27rem;
 }
 
 button:hover {
@@ -228,33 +233,33 @@ button:disabled {
 
 #press-any-key-text {
     margin: 0;
-    font-size: 14px;
+    font-size: 0.64rem;
     display: none;
     color: var(--whiteTextColor);
 }
 
 h2 {
     margin-top: 0;
-    margin-bottom: 10px;
+    margin-bottom: 0.45rem;
     text-align: center;
     color: var(--whiteTextColor);
 }
 
 #options-view {
-    padding-left: 16px;
-    padding-right: 16px;
+    padding-left: 0.73rem;
+    padding-right: 0.73rem;
     display: none;
 }
 
 #options-form {
-    font-size: 14px;
+    font-size: 0.64rem;
     text-align: left;
     color: var(--whiteTextColor);
 }
 
 #options-form p {
     text-align: left;
-    margin: 4px;
+    margin: 0.18rem;
 }
 
 .must-choose-one-text {
@@ -263,19 +268,19 @@ h2 {
 }
 
 .options-indent {
-    padding-left: 30px;
+    padding-left: 1.36rem;
 }
 
 #back-button-container {
     display: inline-block;
     width: 100%;
-    margin-top: 10px;
+    margin-top: 0.45rem;
 }
 
 #options-form h3 {
     display: inline-block;
-    margin-top: 0px;
-    margin-bottom: 0px;
+    margin-top: 0;
+    margin-bottom: 0;
 }
 
 .hide-furigana rt, .display-none{
@@ -283,17 +288,17 @@ h2 {
 }
 
 #verb-affirmative-polite-container, #adjective-affirmative-polite-container {
-    margin-top: 12px;
+    margin-top: 0.55rem;
 }
 
 hr {
-    margin: 4px;
-    border: 1px solid rgb(66, 66, 66);
+    margin: 0.18rem;
+    border: 0.045rem solid rgb(66, 66, 66);
 }
 
 #adjectives-h3-container, #verbs-h3-container {
-    margin-top: 10px;
-    margin-bottom: 10px;
+    margin-top: 0.45rem;
+    margin-bottom: 0.45rem;
 }
 
 #options-form p {
