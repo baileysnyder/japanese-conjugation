@@ -16,16 +16,6 @@ const defaultSettings = () => {
   return retObject;
 }
 
-function elt(type, props, ...children) {
-    let dom = document.createElement(type);
-    if (props) Object.assign(dom, props);
-    for (let child of children) {
-      if (typeof child != "string") dom.appendChild(child);
-      else dom.appendChild(document.createTextNode(child));
-    }
-    return dom;
-}
-
 function wordTypeToDisplayText(type) {
   if (type == "u") {
     return "う-verb";
@@ -99,8 +89,170 @@ class Conjugation {
   }
 }
 
+function touConjugation(affirmative, polite, tense) {
+  if (tense == "present") {
+    if (affirmative && polite) {
+      return "といます";
+    } else if (affirmative && !polite) {
+      return "とう";
+    } else if (!affirmative && polite) {
+      return "といません";
+    } else if (!affirmative && !polite) {
+      return "とわない";
+    }
+  }
+  else if (tense == "past") {
+    if (affirmative && polite) {
+      return "といました";
+    } else if (affirmative && !polite) {
+      return "とうた";
+    } else if (!affirmative && polite) {
+      return "といませんでした";
+    } else if (!affirmative && !polite) {
+      return "とわなかった";
+    }
+  }
+  else if (tense == "te") {
+    return "とうて";
+  }
+}
+
+function aruConjugation(affirmative, polite, tense) {
+  if (tense == "present") {
+    if (affirmative && polite) {
+      return "あります";
+    } else if (affirmative && !polite) {
+      return "ある";
+    } else if (!affirmative && polite) {
+      return "ありません";
+    } else if (!affirmative && !polite) {
+      return "ない";
+    }
+  }
+  else if (tense == "past") {
+    if (affirmative && polite) {
+      return "ありました";
+    } else if (affirmative && !polite) {
+      return "あった";
+    } else if (!affirmative && polite) {
+      return "ありませんでした";
+    } else if (!affirmative && !polite) {
+      return "なかった";
+    }
+  }
+  else if (tense == "te") {
+    return "あって";
+  }
+}
+
+function kuruConjugation(affirmative, polite, tense) {
+  if (tense == "present") {
+    if (affirmative && polite) {
+      return "きます";
+    } else if (affirmative && !polite) {
+      return "くる";
+    } else if (!affirmative && polite) {
+      return "きません";
+    } else if (!affirmative && !polite) {
+      return "こない";
+    }
+  }
+  else if (tense == "past") {
+    if (affirmative && polite) {
+      return "きました";
+    } else if (affirmative && !polite) {
+      return "きた";
+    } else if (!affirmative && polite) {
+      return "きませんでした";
+    } else if (!affirmative && !polite) {
+      return "こなかった";
+    }
+  }
+  else if (tense == "te") {
+    return "きて";
+  }
+}
+
+function suruConjugation(affirmative, polite, tense) {
+  if (tense == "present") {
+    if (affirmative && polite) {
+      return "します";
+    } else if (affirmative && !polite) {
+      return "する";
+    } else if (!affirmative && polite) {
+      return "しません";
+    } else if (!affirmative && !polite) {
+      return "しない";
+    }
+  }
+  else if (tense == "past") {
+    if (affirmative && polite) {
+      return "しました";
+    } else if (affirmative && !polite) {
+      return "した";
+    } else if (!affirmative && polite) {
+      return "しませんでした";
+    } else if (!affirmative && !polite) {
+      return "しなかった";
+    }
+  }
+  else if (tense == "te") {
+    return "して";
+  }
+}
+
+function ikuConjugation(affirmative, polite, tense) {
+  if (tense == "present") {
+    if (affirmative && polite) {
+      return "いきます";
+    } else if (affirmative && !polite) {
+      return "いく";
+    } else if (!affirmative && polite) {
+      return "いきません";
+    } else if (!affirmative && !polite) {
+      return "いかない";
+    }
+  }
+  else if (tense == "past") {
+    if (affirmative && polite) {
+      return "いきました";
+    } else if (affirmative && !polite) {
+      return "いった";
+    } else if (!affirmative && polite) {
+      return "いきませんでした";
+    } else if (!affirmative && !polite) {
+      return "いかなかった";
+    }
+  }
+  else if (tense == "te") {
+    return "いって";
+  }
+}
+
+function checkSuffix(hiraganaWord, suffix) {
+  for (let i = 1; i <= suffix.length; i++) {
+    if (hiraganaWord[hiraganaWord.length - i] != suffix[suffix.length - i]) {
+      return false;
+    }
+  }
+  return hiraganaWord.replace(suffix, "");
+}
+
 function irregularVerbConjugation(hiraganaVerb, affirmative, polite, tense) {
- return "irr placeholder";
+  let prefix;
+  if ((prefix = checkSuffix(hiraganaVerb, "いく")) !== false) {
+    return prefix + ikuConjugation(affirmative, polite, tense);
+  } else if ((prefix = checkSuffix(hiraganaVerb, "する")) !== false) {
+    return prefix + suruConjugation(affirmative, polite, tense);
+  } else if ((prefix = checkSuffix(hiraganaVerb, "くる")) !== false) {
+    return prefix + kuruConjugation(affirmative, polite, tense);
+  } else if ((prefix = checkSuffix(hiraganaVerb, "ある")) !== false) {
+    return prefix + aruConjugation(affirmative, polite, tense);
+  } else if ((prefix = checkSuffix(hiraganaVerb, "とう")) !== false) {
+    return prefix + touConjugation(affirmative, polite, tense);
+  }
+
+ return "Error";
 }
 
 function iiConjugation(affirmative, polite, tense) {
@@ -431,7 +583,7 @@ function getAllConjugations(wordJSON) {
     polite = !polite;
 
     // don't need present plain affirmative
-    if (affirmative && !polite && Math.floor(i / 4) == 0) continue;
+    if (affirmative && !polite && Math.floor(i / 4) == 0 && wordJSON.type != "na") continue;
 
     conj.push(conjFunctions[keys[Math.floor(i / 4)]](hiragana, wordJSON.type, affirmative, polite));
   }
@@ -488,6 +640,33 @@ function findMaxProb(currentWords) {
   return max;
 }
 
+function addValueToProbabilities(currentWords, value, operation) {
+  let totalProbability = 0;
+  // update probabilities
+  for (let i = 0; i < currentWords.length; i++) {
+    for (let j = 0; j < currentWords[i].length; j++)
+    {
+      if (operation == "*") {
+        console.log("multiplying");
+        currentWords[i][j].probability *= value;
+      } else if (operation == "=") {
+        currentWords[i][j].probability = value;
+      }
+      totalProbability += currentWords[i][j].probability;
+    }
+  }
+
+  // normalize probabilities
+  for (let i = 0; i < currentWords.length; i++) {
+    for (let j = 0; j < currentWords[i].length; j++)
+    {
+      currentWords[i][j].probability /= totalProbability;
+    }
+  }
+
+  console.log(currentWords);
+}
+
 // words to ignore will be object with properties word, roundssinceshown, amountToAddFunction
 // if amount of current words is less than 
 function updateProbabilites(currentWords, wordsRecentlySeen, currentWord, currentWordMissed) {
@@ -514,41 +693,20 @@ function updateProbabilites(currentWords, wordsRecentlySeen, currentWord, curren
   wordsRecentlySeen.push(new WordRecentlySeen(currentWord, currentWordMissed));
   currentWord.probability = 0;
 
-  const defaultProbModifier = 1.1
-  let totalProbability = 0;
-  // update probabilities
-  for (let i = 0; i < currentWords.length; i++) {
-    for (let j = 0; j < currentWords[i].length; j++)
-    {
-      currentWords[i][j].probability *= defaultProbModifier;
-      totalProbability += currentWords[i][j].probability;
-    }
-  }
-
-  // normalize probabilities
-  for (let i = 0; i < currentWords.length; i++) {
-    for (let j = 0; j < currentWords[i].length; j++)
-    {
-      currentWords[i][j].probability /= totalProbability;
-    }
-  }
-
-  console.log(currentWords);
+  const defaultProbModifier = 1.1;
+  addValueToProbabilities(currentWords, defaultProbModifier, "*");
 }
 
 // returns 2D array [verbarray, adjarray]
 function createWordList(JSONWords) {
   let wordList = createArrayOfArrays(JSONWords.length);
-  
-  // temp pls delete
-  let initialProbability = 1 / ((JSONWords[0].length + JSONWords[1].length) * 8);
 
   for (let i = 0; i < JSONWords.length; i++) {
     for (let j = 0; j < JSONWords[i].length; j++) {
       let conjugations = getAllConjugations(JSONWords[i][j]);
 
       for (let k = 0; k < conjugations.length; k++) {
-        wordList[i].push(new Word(JSONWords[i][j], conjugations[k], initialProbability));
+        wordList[i].push(new Word(JSONWords[i][j], conjugations[k]));
       }
     }
   }
@@ -593,12 +751,6 @@ function pickRandomWord(wordList) {
   }
 }
 
-// need to assign state to empty object before applying action in order to make the state immutable
-// so this copies all of states properties into {}, and then all of action's properties into that new object
-function updateState(state, action) {
-  return Object.assign({}, state, action);
-}
-
 function addToScore(amount = 1) {
   if (amount == 0) {
     return;
@@ -615,11 +767,11 @@ function addToScore(amount = 1) {
   current.textContent = parseInt(current.textContent) + amount;
   current.classList.add("grow-animation");
 }
-// rgb(250, 150, 0)
+// rgb(255, 118, 20)
 function typeToWordBoxColor(type) {
   switch (type) {
     case "u":
-      return "rgb(255, 118, 20)";
+      return "rgb(201, 151, 0)";
     case "ru":
       return "rgb(0, 110, 220)";
     case "irv":
@@ -627,7 +779,7 @@ function typeToWordBoxColor(type) {
     case "ira":
       return "gray";
     case "i":
-      return "rgb(41, 207, 201)";
+      return "rgb(4, 204, 196)";
     case "na":
       return "sienna";
   }
@@ -643,7 +795,7 @@ function updateStatusBoxes(word, entryText) {
   } else {
     document.getElementById("verb-box").style.background = typeToWordBoxColor(word.wordJSON.type);
     document.getElementById("verb-type").textContent = wordTypeToDisplayText(word.wordJSON.type);
-    statusBox.style.background = "rgb(255, 20, 20)";
+    statusBox.style.background = "rgb(230, 5, 5)";
     document.getElementById("status-text").innerHTML = (entryText == "" ? "_" : entryText) +
     " ×<br>" + word.conjugation.conjugation + " ○";
   }
@@ -842,20 +994,6 @@ function optionsMenuInit() {
   optionsView.addEventListener("click", adjPresAffPlainCheckError);
 }
 
-function setProbabilitiesEven(currentWordList) {
-  let count = 0;
-  for (let i = 0; i < currentWordList.length; i++) {
-    count += currentWordList[i].length;
-  }
-
-  let amount = 1/count;
-  for (let i = 0; i < currentWordList.length; i++) {
-    for (let j = 0; j < currentWordList[i].length; j++) {
-      currentWordList[i][j].probability = amount;
-    }
-  }
-}
-
 import {optionRemoveFunctions, showFurigana, showEmojis} from "./optionfunctions.js";
 
 function applySettings(settings, completeWordList) {
@@ -885,7 +1023,7 @@ function applySettings(settings, completeWordList) {
     }
   }
 
-  setProbabilitiesEven(currentWordList);
+  addValueToProbabilities(currentWordList, 1, "=");
   return currentWordList;
 }
 
@@ -979,13 +1117,13 @@ class ConjugationApp {
       input.checked = this.state.settings[input.name];
     }
 
-    // if errors were hidden when settings were saved, need to make sure they appear when unhidden
     let optionsGroups = document.getElementsByClassName("options-group");
     for (let group of Array.from(optionsGroups)) {
       optionsGroupCheckError(group);
     }
 
     checkVerbsUsingAffirmativePolite();
+    checkAdjectivesUsingAffirmativePolite();
     verbAndAdjCheckError();
 
     document.getElementById("main-view").style.display = "none";
@@ -1002,6 +1140,7 @@ class ConjugationApp {
     
     localStorage.setItem("settings", JSON.stringify(this.state.settings));
     this.state.currentWordList = applySettings(this.state.settings, this.state.completeWordList);
+    addValueToProbabilities(this.state.currentWordList, 1, "=");
     this.resetMainView();
     // if clicked settings from correct/neutral state, need to load new word immediately without adding to score
 

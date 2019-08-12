@@ -1,10 +1,14 @@
 <?php
 header('Content-type: text/plain; charset=utf-8');
 
+// local computer set up
 include '../jaconj_mysql_credentials.php';
-//include '/home/baileysn/db_credentials/jaconj_mysql_credentials.php';
-
 $mysqli = new mysqli("baileysnyder.com", $username, $password, $database);
+
+// server set up
+//include '/home/baileysn/db_credentials/jaconj_mysql_credentials.php';
+//$mysqli = new mysqli("127.0.0.1", $username, $password, $database);
+
 if ($mysqli->connect_error) {
   die($mysqli->connect_error);
 }
