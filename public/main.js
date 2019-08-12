@@ -779,7 +779,7 @@ function typeToWordBoxColor(type) {
     case "ira":
       return "gray";
     case "i":
-      return "rgb(4, 204, 196)";
+      return "rgb(0, 193, 214)";
     case "na":
       return "sienna";
   }
@@ -795,7 +795,7 @@ function updateStatusBoxes(word, entryText) {
   } else {
     document.getElementById("verb-box").style.background = typeToWordBoxColor(word.wordJSON.type);
     document.getElementById("verb-type").textContent = wordTypeToDisplayText(word.wordJSON.type);
-    statusBox.style.background = "rgb(230, 5, 5)";
+    statusBox.style.background = "rgb(220, 5, 5)";
     document.getElementById("status-text").innerHTML = (entryText == "" ? "_" : entryText) +
     " ×<br>" + word.conjugation.conjugation + " ○";
   }
