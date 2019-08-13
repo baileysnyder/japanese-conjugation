@@ -135,7 +135,7 @@ p {
 #status-container {
     text-align: center;
     margin: 1.09rem;
-    height: 3.91rem;
+    min-height: 4rem;
 }
 
 #status-box {
@@ -144,7 +144,7 @@ p {
     background: green;
     border-radius: 0.91rem;
     min-width: 66%;
-    height: 4rem;
+    min-height: 4rem;
     justify-content: center;
     flex-direction: column;
 }
@@ -156,6 +156,8 @@ p {
     color: white;
     margin-left: 0.8rem;
     margin-right: 0.8rem;
+    margin-top: 0.3rem;
+    margin-bottom: 0.3rem;
 }
 
 #input-container {
