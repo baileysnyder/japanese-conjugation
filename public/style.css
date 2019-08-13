@@ -222,6 +222,10 @@ button {
     margin-right:-0.27rem;
 }
 
+#back-button {
+    padding-right: 0.4rem;
+}
+
 button:hover {
     background: rgb(70, 70, 70);
 }
