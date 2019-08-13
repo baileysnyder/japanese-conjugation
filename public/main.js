@@ -818,11 +818,12 @@ function checkToEnableBackButton() {
   for (let error of Array.from(errors)) {
     // checks if any error messages take up space on the screen
     if (error.offsetWidth > 0 && error.offsetHeight > 0) {
+      document.getElementById("back-button").disabled = true;
       return;
     }
   }
 
-  //console.log("I tried to enable the back button");
+  console.log("enabling back button");
   document.getElementById("back-button").disabled = false;
 }
 
@@ -843,7 +844,7 @@ function toggleError(errorElement, errorMessage, enabled) {
     let backButton = document.getElementById("back-button");
     errorElement.textContent = errorMessage;
     toggleDisplayNone(errorElement, false);
-    //console.log("I tried to disable back button");
+    console.log("I tried to disable back button");
     backButton.disabled = true;
   } else {
     toggleDisplayNone(errorElement, true);
@@ -943,7 +944,7 @@ function adjPresAffPlainCheckError() {
     toggleError(errorElement, "*Invalid combination: い/irregular, present, affirmative, plain", true);
     // element could be hidden because verb is unchecked, so check to enable back button
     checkToEnableBackButton();
-  } else {
+  } else if (document.querySelectorAll('input[name="adjective"]')[0].checked){
     optionsGroupCheckError(optionsGroup);
   }
 }
