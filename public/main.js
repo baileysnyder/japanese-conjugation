@@ -1,7 +1,3 @@
-// update all weights, sum and divide by sum to keep between 0 and 1. keep ordered. 
-// method 1: add all weights n, normalize all weights n, pick number between 0 1 and keep summing weights until reach O(3n)
-// could store sum until each point, but requires extra array to make it O(2n + log n)
-
 // since the weights are mostly only used to make things repeat after x amount of rounds, they are overkill
 // would be less work to just wait x rounds and immeditely show what you missed, without updating any weights.
 "use strict";
@@ -64,6 +60,13 @@ function conjugationInqueryFormatting(conjugation) {
   return newString;
 }
 
+function changeVerbBoxFontColor(color) {
+  let ps = document.getElementById("verb-box").getElementsByTagName("p");
+  for (let p of Array.from(ps)) {
+    p.style.color = color;
+  }
+}
+
 function loadNewWord(wordList, score, maxScoreObjects, maxScoreIndex) {
   let word = pickRandomWord(wordList);
   updateCurrentWord(word);
@@ -71,7 +74,7 @@ function loadNewWord(wordList, score, maxScoreObjects, maxScoreIndex) {
   if (!isTouch) {
     document.getElementsByTagName("input")[0].focus(); 
   }
-
+  changeVerbBoxFontColor("rgb(232, 232, 232)");
   return word;
 }
 
@@ -779,15 +782,15 @@ function addToScore(amount = 1, maxScoreObjects, maxScoreIndex) {
 function typeToWordBoxColor(type) {
   switch (type) {
     case "u":
-      return "rgb(245, 134, 0)";
+      return "rgb(255, 125, 0)";
     case "ru":
-      return "rgb(0, 90, 220)";
+      return "rgb(5, 80, 245)";
     case "irv":
       return "gray";
     case "ira":
       return "gray";
     case "i":
-      return "rgb(0, 160, 210)";
+      return "rgb(0, 180, 240)";
     case "na":
       return "rgb(143, 73, 40)";
   }
@@ -802,6 +805,7 @@ function updateStatusBoxes(word, entryText) {
     document.getElementById("status-text").innerHTML = "Correct";
   } else {
     document.getElementById("verb-box").style.background = typeToWordBoxColor(word.wordJSON.type);
+    changeVerbBoxFontColor("white");
     document.getElementById("verb-type").textContent = wordTypeToDisplayText(word.wordJSON.type);
     statusBox.style.background = "rgb(218, 5, 5)";
     document.getElementById("status-text").innerHTML = (entryText == "" ? "_" : entryText) +
