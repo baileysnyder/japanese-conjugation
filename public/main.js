@@ -807,6 +807,8 @@ function updateStatusBoxes(word, entryText) {
     document.getElementById("verb-box").style.background = typeToWordBoxColor(word.wordJSON.type);
     changeVerbBoxFontColor("white");
     document.getElementById("verb-type").textContent = wordTypeToDisplayText(word.wordJSON.type);
+    toggleClassName(statusBox, "grow-fade-animation");
+    statusBox.style.opacity = "1";
     statusBox.style.background = "rgb(218, 5, 5)";
     document.getElementById("status-text").innerHTML = (entryText == "" ? "_" : entryText) +
     " ×<br>" + word.conjugation.conjugation + " ○";
@@ -838,12 +840,16 @@ function onClickCheckboxCheckError(e) {
   optionsGroupCheckError(e.currentTarget);
 }
 
-function toggleDisplayNone(element, enabled) {
+function toggleClassName(element, className, enabled) {
   if (enabled) {
-    addClassName(element, "display-none");
+    addClassName(element, className);
   } else {
-    element.className = element.className.replace("display-none", "");
+    element.className = element.className.replace(className, "");
   }
+}
+
+function toggleDisplayNone(element, enabled) {
+  toggleClassName(element, "display-none", enabled);
 }
 
 function toggleError(errorElement, errorMessage, enabled) {

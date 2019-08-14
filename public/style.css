@@ -43,7 +43,7 @@ p {
 }
 
 .grow-fade-animation {
-    animation: grow-fade-animation 1.2s;
+    animation: grow-fade-animation 2.2s;
 }
 
 @keyframes grow-fade-animation {
@@ -51,11 +51,11 @@ p {
         transform: scale(0);
         opacity: 1;
     }
-    25% {
+    12% {
         transform: scale(1);
         opacity: 1;
     }
-    60% {
+    75% {
         transform: scale(1);
         opacity: 1;
     }
