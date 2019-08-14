@@ -1,4 +1,8 @@
 <?php
+if (!array_key_exists('HTTP_REFERER', $_SERVER)) {
+  die("Why would you do a thing like that?");
+}
+
 header('Content-type: text/plain; charset=utf-8');
 
 // local computer set up

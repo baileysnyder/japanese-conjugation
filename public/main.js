@@ -96,39 +96,42 @@ function wordPartOfSpeech(wordJSON) {
 }
 
 class Conjugation {
-  constructor(conjugation, tense, affirmative, polite) {
+  constructor(conjugation, kanjiConjugation, tense, affirmative, polite) {
     this.conjugation = conjugation;
+    // currently if the word has no kanji, kanjiConjugation is just a duplicate of conjugation
+    this.kanjiConjugation = kanjiConjugation;
     this.tense = tense;
     this.affirmative = affirmative;
     this.polite = polite;
   }
 }
 
-function touConjugation(affirmative, polite, tense) {
+function touConjugation(affirmative, polite, tense, isKanji) {
+  let firstLetter = isKanji ? "問" : "と";
   if (tense == "present") {
     if (affirmative && polite) {
-      return "といます";
+      return firstLetter + "います";
     } else if (affirmative && !polite) {
-      return "とう";
+      return firstLetter + "う";
     } else if (!affirmative && polite) {
-      return "といません";
+      return firstLetter + "いません";
     } else if (!affirmative && !polite) {
-      return "とわない";
+      return firstLetter + "わない";
     }
   }
   else if (tense == "past") {
     if (affirmative && polite) {
-      return "といました";
+      return firstLetter + "いました";
     } else if (affirmative && !polite) {
-      return "とうた";
+      return firstLetter + "うた";
     } else if (!affirmative && polite) {
-      return "といませんでした";
+      return firstLetter + "いませんでした";
     } else if (!affirmative && !polite) {
-      return "とわなかった";
+      return firstLetter + "わなかった";
     }
   }
   else if (tense == "te") {
-    return "とうて";
+    return firstLetter + "うて";
   }
 }
 
@@ -160,32 +163,38 @@ function aruConjugation(affirmative, polite, tense) {
   }
 }
 
-function kuruConjugation(affirmative, polite, tense) {
+function kuruConjugation(affirmative, polite, tense, isKanji) {
+  let retval;
   if (tense == "present") {
     if (affirmative && polite) {
-      return "きます";
+      retval = "きます";
     } else if (affirmative && !polite) {
-      return "くる";
+      retval = "くる";
     } else if (!affirmative && polite) {
-      return "きません";
+      retval = "きません";
     } else if (!affirmative && !polite) {
-      return "こない";
+      retval = "こない";
     }
   }
   else if (tense == "past") {
     if (affirmative && polite) {
-      return "きました";
+      retval = "きました";
     } else if (affirmative && !polite) {
-      return "きた";
+      retval = "きた";
     } else if (!affirmative && polite) {
-      return "きませんでした";
+      retval = "きませんでした";
     } else if (!affirmative && !polite) {
-      return "こなかった";
+      retval = "こなかった";
     }
   }
   else if (tense == "te") {
-    return "きて";
+    retval = "きて";
   }
+
+  if (isKanji) {
+    retval = "来" + retval.substring(1);
+  }
+  return retval;
 }
 
 function suruConjugation(affirmative, polite, tense) {
@@ -216,31 +225,32 @@ function suruConjugation(affirmative, polite, tense) {
   }
 }
 
-function ikuConjugation(affirmative, polite, tense) {
+function ikuConjugation(affirmative, polite, tense, isKanji) {
+  let firstLetter = isKanji ? "行" : "い";
   if (tense == "present") {
     if (affirmative && polite) {
-      return "いきます";
+      return firstLetter + "きます";
     } else if (affirmative && !polite) {
-      return "いく";
+      return firstLetter + "く";
     } else if (!affirmative && polite) {
-      return "いきません";
+      return firstLetter + "きません";
     } else if (!affirmative && !polite) {
-      return "いかない";
+      return firstLetter + "かない";
     }
   }
   else if (tense == "past") {
     if (affirmative && polite) {
-      return "いきました";
+      return firstLetter + "きました";
     } else if (affirmative && !polite) {
-      return "いった";
+      return firstLetter + "った";
     } else if (!affirmative && polite) {
-      return "いきませんでした";
+      return firstLetter + "きませんでした";
     } else if (!affirmative && !polite) {
-      return "いかなかった";
+      return firstLetter + "かなかった";
     }
   }
   else if (tense == "te") {
-    return "いって";
+    return firstLetter + "って";
   }
 }
 
@@ -256,15 +266,21 @@ function checkSuffix(hiraganaWord, suffix) {
 function irregularVerbConjugation(hiraganaVerb, affirmative, polite, tense) {
   let prefix;
   if ((prefix = checkSuffix(hiraganaVerb, "いく")) !== false) {
-    return prefix + ikuConjugation(affirmative, polite, tense);
+    return prefix + ikuConjugation(affirmative, polite, tense, false);
+  } else if ((prefix = checkSuffix(hiraganaVerb, "行く")) !== false) {
+    return prefix + ikuConjugation(affirmative, polite, tense, true);
   } else if ((prefix = checkSuffix(hiraganaVerb, "する")) !== false) {
     return prefix + suruConjugation(affirmative, polite, tense);
   } else if ((prefix = checkSuffix(hiraganaVerb, "くる")) !== false) {
-    return prefix + kuruConjugation(affirmative, polite, tense);
+    return prefix + kuruConjugation(affirmative, polite, tense, false);
+  } else if ((prefix = checkSuffix(hiraganaVerb, "来る")) !== false) {
+    return prefix + kuruConjugation(affirmative, polite, tense, true);
   } else if ((prefix = checkSuffix(hiraganaVerb, "ある")) !== false) {
     return prefix + aruConjugation(affirmative, polite, tense);
   } else if ((prefix = checkSuffix(hiraganaVerb, "とう")) !== false) {
-    return prefix + touConjugation(affirmative, polite, tense);
+    return prefix + touConjugation(affirmative, polite, tense, false);
+  } else if ((prefix = checkSuffix(hiraganaVerb, "問う")) !== false) {
+    return prefix + touConjugation(affirmative, polite, tense, true);
   }
 
  return "Error";
@@ -406,173 +422,165 @@ function dropFinalLetter(word) {
 let conjugationFunctions = {
   verb: {
     present: function(hiraganaVerb, type, affirmative, polite) {
-      let retWord;
-
       if (type == "irv") {
-        retWord = irregularVerbConjugation(hiraganaVerb, affirmative, polite, "present");
+        return irregularVerbConjugation(hiraganaVerb, affirmative, polite, "present");
       }
       else if (affirmative && polite) {
-        retWord = masuStem(hiraganaVerb, type) + "ます";
+        return masuStem(hiraganaVerb, type) + "ます";
       }
       else if (affirmative && !polite) {
-        retWord = hiraganaVerb;
+        return hiraganaVerb;
       }
       else if (!affirmative && polite) {
-        retWord = masuStem(hiraganaVerb, type) + "ません";
+        return masuStem(hiraganaVerb, type) + "ません";
       }
       else if (!affirmative && !polite) {
-        retWord = plainNegativeComplete(hiraganaVerb, type);
+        return plainNegativeComplete(hiraganaVerb, type);
       }
-
-      return new Conjugation(retWord, "Present", affirmative, polite);
     },
     past: function(hiraganaVerb, type, affirmative, polite) {
-      let retWord;
-
       if (type == "irv") {
-        retWord = irregularVerbConjugation(hiraganaVerb, affirmative, polite, "past");
+        return irregularVerbConjugation(hiraganaVerb, affirmative, polite, "past");
       }
       else if (affirmative && polite) {
-        retWord = masuStem(hiraganaVerb, type) + "ました";
+        return masuStem(hiraganaVerb, type) + "ました";
       }
       else if (affirmative && !polite && type == "u") {
-        retWord = dropFinalLetter(hiraganaVerb) +
+        return dropFinalLetter(hiraganaVerb) +
         changeToPastPlain(hiraganaVerb.charAt(hiraganaVerb.length - 1));
       } else if (affirmative && !polite && type == "ru") {
-        retWord = masuStem(hiraganaVerb, type) + "た";
+        return masuStem(hiraganaVerb, type) + "た";
       }
 
       else if (!affirmative && polite) {
-        retWord = masuStem(hiraganaVerb, type) + "ませんでした";
+        return masuStem(hiraganaVerb, type) + "ませんでした";
       }
       else if (!affirmative && !polite) {
         let plainNegative = plainNegativeComplete(hiraganaVerb, type);
-        retWord = dropFinalLetter(plainNegative) + "かった";
+        return dropFinalLetter(plainNegative) + "かった";
       }
-
-      return new Conjugation(retWord, "Past", affirmative, polite);
     },
     te: function(hiraganaVerb, type) {
-      let retWord;
-
       if (type == "irv") {
-        retWord = irregularVerbConjugation(hiraganaVerb, false, false, "te");
+        return irregularVerbConjugation(hiraganaVerb, false, false, "te");
       }
 
       else if (type == "u") {
         let finalChar = hiraganaVerb.charAt(hiraganaVerb.length - 1);
         if (finalChar == "う" || finalChar == "つ" || finalChar == "る") {
-          retWord = dropFinalLetter(hiraganaVerb) + "って";
+          return dropFinalLetter(hiraganaVerb) + "って";
         }
         else if (finalChar == "む" || finalChar == "ぶ" || finalChar == "ぬ") {
-          retWord = dropFinalLetter(hiraganaVerb) + "んで";
+          return dropFinalLetter(hiraganaVerb) + "んで";
         }
         else if (finalChar == "く") {
-          retWord = dropFinalLetter(hiraganaVerb) + "いて";
+          return dropFinalLetter(hiraganaVerb) + "いて";
         }
         else if (finalChar == "ぐ") {
-          retWord = dropFinalLetter(hiraganaVerb) + "いで";
+          return dropFinalLetter(hiraganaVerb) + "いで";
         }
         else if (finalChar == "す") {
-          retWord = dropFinalLetter(hiraganaVerb) + "して";
+          return dropFinalLetter(hiraganaVerb) + "して";
         }
       }
 
       else if (type == "ru") {
-        retWord = masuStem(hiraganaVerb, type) + "て";
+        return masuStem(hiraganaVerb, type) + "て";
       }
-
-      return new Conjugation(retWord, "て-form", null, null);
     }
   },
 
   adjective: {
     present: function(hiraganaAdjective, type, affirmative, polite) {
-      let retWord;
-
       if (type == "ira") {
-        retWord = irregularAdjectiveConjugation(hiraganaAdjective, affirmative, polite, "present");
+        return irregularAdjectiveConjugation(hiraganaAdjective, affirmative, polite, "present");
       }
 
       else if (affirmative && polite) {
-        retWord = hiraganaAdjective + "です";
+        return hiraganaAdjective + "です";
       }
 
       else if (affirmative && !polite && type == "i") {
-        retWord = hiraganaAdjective;
+        return hiraganaAdjective;
       } else if (affirmative && !polite && type == "na") {
-        retWord = hiraganaAdjective + "だ";
+        return hiraganaAdjective + "だ";
       }
 
       else if (!affirmative && polite && type == "i") {
-        retWord = dropFinalLetter(hiraganaAdjective) + "くないです";
+        return dropFinalLetter(hiraganaAdjective) + "くないです";
       } else if (!affirmative && polite && type == "na") {
-        retWord = hiraganaAdjective + "じゃないです";
+        return hiraganaAdjective + "じゃないです";
       }
 
       else if (!affirmative && !polite && type == "i") {
-        retWord = dropFinalLetter(hiraganaAdjective) + "くない";
+        return dropFinalLetter(hiraganaAdjective) + "くない";
       } else if (!affirmative && !polite && type == "na") {
-        retWord = hiraganaAdjective + "じゃない";
+        return hiraganaAdjective + "じゃない";
       }
-
-      return new Conjugation(retWord, "Present", affirmative, polite);
     },
     past: function(hiraganaAdjective, type, affirmative, polite) {
-      let retWord;
-
       if (type == "ira") {
-        retWord = irregularAdjectiveConjugation(hiraganaAdjective, affirmative, polite, "past");
+        return irregularAdjectiveConjugation(hiraganaAdjective, affirmative, polite, "past");
       }
 
       else if (affirmative && polite && type == "i") {
-        retWord = dropFinalLetter(hiraganaAdjective) + "かったです";
+        return dropFinalLetter(hiraganaAdjective) + "かったです";
       }　else if (affirmative && polite && type == "na") {
-        retWord = hiraganaAdjective + "でした";
+        return hiraganaAdjective + "でした";
       }
 
       else if (affirmative && !polite && type == "i") {
-        retWord = dropFinalLetter(hiraganaAdjective) + "かった";
+        return dropFinalLetter(hiraganaAdjective) + "かった";
       } else if (affirmative && !polite && type == "na") {
-        retWord = hiraganaAdjective + "だった";
+        return hiraganaAdjective + "だった";
       }
 
       else if (!affirmative && polite && type == "i") {
-        retWord = dropFinalLetter(hiraganaAdjective) + "くなかったです";
+        return dropFinalLetter(hiraganaAdjective) + "くなかったです";
       } else if (!affirmative && polite && type == "na") {
-        retWord = hiraganaAdjective + "じゃなかったです";
+        return hiraganaAdjective + "じゃなかったです";
       }
 
       else if (!affirmative && !polite && type == "i") {
-        retWord = dropFinalLetter(hiraganaAdjective) + "くなかった";
+        return dropFinalLetter(hiraganaAdjective) + "くなかった";
       } else if (!affirmative && !polite && type == "na") {
-        retWord = hiraganaAdjective + "じゃなかった";
+        return hiraganaAdjective + "じゃなかった";
       }
-
-      return new Conjugation(retWord, "Past", affirmative, polite);
     },
     adverb: function(hiraganaAdjective, type) {
-      let retWord;
-
       if (type == "ira") {
-        retWord = irregularAdjectiveConjugation(hiraganaAdjective, false, false, "adverb");
+        return irregularAdjectiveConjugation(hiraganaAdjective, false, false, "adverb");
       }
 
       else if (type == "i") {
-        retWord = dropFinalLetter(hiraganaAdjective) + "く";
+        return dropFinalLetter(hiraganaAdjective) + "く";
       }
 
       else if (type == "na") {
-        retWord = hiraganaAdjective + "に";
+        return hiraganaAdjective + "に";
       }
-
-      return new Conjugation(retWord, "Adverb", null, null);
     }
   }
 };
 
+function convertFuriganaToKanji(word) {
+  return word.replace(/<ruby>|<\/ruby>|<rt>.*?<\/rt>/g, "");
+}
+
 function convertFuriganaToHiragana(word) {
   return word.replace(/<ruby>|<\/ruby>|.?<rt>|<\/rt>/g, "");
+}
+
+function conjFuncIndexToName(index, wordPartOfSpeech) {
+  if (index == 0) {
+    return "Present";
+  } else if (index == 1) {
+    return "Past";
+  } else if (index == 2 && wordPartOfSpeech == "verb") {
+    return "て-form";
+  } else if (index == 2 && wordPartOfSpeech == "adjective") {
+    return "Adverb";
+  }
 }
 
 function getAllConjugations(wordJSON) {
@@ -580,16 +588,19 @@ function getAllConjugations(wordJSON) {
   let affirmative = false, polite = false;
 
   let keys, conjFunctions;
-  if (wordPartOfSpeech(wordJSON) == "verb") {
+  let partOfSpeech = wordPartOfSpeech(wordJSON)
+  if (partOfSpeech == "verb") {
     conjFunctions = conjugationFunctions.verb
     keys = Object.keys(conjFunctions);
-  } else if (wordPartOfSpeech(wordJSON) == "adjective") {
+  } else if (partOfSpeech == "adjective") {
     conjFunctions = conjugationFunctions.adjective;
     keys = Object.keys(conjFunctions);
   }
 
   let hiragana = convertFuriganaToHiragana(wordJSON.kanji);
+  let kanji = convertFuriganaToKanji(wordJSON.kanji);
 
+  let hiraganaConj, kanjiConj;
   for (let i = 0; i < (keys.length - 1)*4; i++) {
 
     if (i % 2 == 0) {
@@ -597,14 +608,19 @@ function getAllConjugations(wordJSON) {
     }
     polite = !polite;
 
+    let keyIndex = Math.floor(i / 4)
     // don't need present plain affirmative
-    if (affirmative && !polite && Math.floor(i / 4) == 0 && wordJSON.type != "na") continue;
+    if (affirmative && !polite && keyIndex == 0 && wordJSON.type != "na") continue;
 
-    conj.push(conjFunctions[keys[Math.floor(i / 4)]](hiragana, wordJSON.type, affirmative, polite));
+    hiraganaConj = conjFunctions[keys[keyIndex]](hiragana, wordJSON.type, affirmative, polite);
+    kanjiConj = conjFunctions[keys[keyIndex]](kanji, wordJSON.type, affirmative, polite);
+    conj.push(new Conjugation(hiraganaConj, kanjiConj, conjFuncIndexToName(keyIndex, partOfSpeech), affirmative, polite));
   }
 
   // te and adverb
-  conj.push(conjFunctions[keys[keys.length - 1]](hiragana, wordJSON.type));
+  hiraganaConj = conjFunctions[keys[keys.length - 1]](hiragana, wordJSON.type);
+  kanjiConj = conjFunctions[keys[keys.length - 1]](kanji, wordJSON.type);
+  conj.push(new Conjugation(hiraganaConj, kanjiConj, conjFuncIndexToName(keys.length - 1, partOfSpeech), null, null));
 
   // array of Conjugation objects
   return conj;
@@ -799,7 +815,7 @@ function typeToWordBoxColor(type) {
 function updateStatusBoxes(word, entryText) {
   let statusBox = document.getElementById("status-box");
   statusBox.style.display = "inline-flex";
-  if (word.conjugation.conjugation == entryText) {
+  if (word.conjugation.conjugation == entryText || word.conjugation.kanjiConjugation == entryText) {
     statusBox.style.background = "green";
     statusBox.classList.add("grow-fade-animation");
     document.getElementById("status-text").innerHTML = "Correct";
@@ -1143,7 +1159,9 @@ class ConjugationApp {
       updateStatusBoxes(this.state.currentWord, inputElt.value);
 
       // update probabilities before next word is chosen so don't choose same word
-      let inputWasCorrect = inputElt.value == this.state.currentWord.conjugation.conjugation;
+      let inputWasCorrect = inputElt.value == this.state.currentWord.conjugation.conjugation || 
+      inputElt.value == this.state.currentWord.conjugation.kanjiConjugation;
+
       updateProbabilites(this.state.currentWordList, this.state.wordsRecentlySeen,
         this.state.currentWord, inputWasCorrect);
 
