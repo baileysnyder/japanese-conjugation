@@ -67,10 +67,9 @@ function changeVerbBoxFontColor(color) {
   }
 }
 
-function loadNewWord(wordList, score, maxScoreObjects, maxScoreIndex) {
+function loadNewWord(wordList) {
   let word = pickRandomWord(wordList);
   updateCurrentWord(word);
-  addToScore(score, maxScoreObjects, maxScoreIndex);
   if (!isTouch) {
     document.getElementsByTagName("input")[0].focus(); 
   }
@@ -817,14 +816,15 @@ function updateStatusBoxes(word, entryText) {
   statusBox.style.display = "inline-flex";
   if (word.conjugation.conjugation == entryText || word.conjugation.kanjiConjugation == entryText) {
     statusBox.style.background = "green";
-    statusBox.classList.add("grow-fade-animation");
-    document.getElementById("status-text").innerHTML = "Correct";
+    //statusBox.classList.add("grow-correct-animation");
+    document.getElementById("status-text").innerHTML = "Correct" + "<br>" + entryText + " ○";
   } else {
     document.getElementById("verb-box").style.background = typeToWordBoxColor(word.wordJSON.type);
     changeVerbBoxFontColor("white");
     document.getElementById("verb-type").textContent = wordTypeToDisplayText(word.wordJSON.type);
-    toggleClassName(statusBox, "grow-fade-animation");
-    statusBox.style.opacity = "1";
+    //toggleClassName(statusBox, "grow-correct-animation", false);
+    //statusBox.style.opacity = "1";
+    //statusBox.style.transform = "scale(1)";
     statusBox.style.background = "rgb(218, 5, 5)";
     document.getElementById("status-text").innerHTML = (entryText == "" ? "_" : entryText) +
     " ×<br>" + word.conjugation.conjugation + " ○";
@@ -1114,7 +1114,7 @@ class ConjugationApp {
     });
 
     document.getElementById("status-box").addEventListener("animationend", e => {
-      document.getElementById("status-box").style.display = "none";
+      //document.getElementById("status-box").style.display = "none";
       document.getElementById("status-box").classList.remove(e.animationName);
     });
 
@@ -1144,10 +1144,15 @@ class ConjugationApp {
 
   resetMainView() {
     document.getElementsByTagName("input")[0].disabled = false;
+    document.getElementsByTagName("input")[0].value = "";
     document.getElementById("press-any-key-text").style.display = "none";
     document.getElementById("status-box").style.display = "none";
-    document.getElementById("current-streak-text").textContent = "0";
-    this.state.currentWord = loadNewWord(this.state.currentWordList, 0, this.state.maxScoreObjects, this.state.maxScoreIndex);
+    if (this.state.currentStreakReset) {
+      document.getElementById("current-streak-text").textContent = "0";
+      this.state.currentStreakReset = false;
+    }
+
+    this.state.currentWord = loadNewWord(this.state.currentWordList);
   }
 
   inputKeyPress(e) {
@@ -1156,23 +1161,29 @@ class ConjugationApp {
       let inputElt = document.getElementsByTagName("input")[0];
       inputElt.blur();
       e.stopPropagation();
-      updateStatusBoxes(this.state.currentWord, inputElt.value);
+
+      // set hanging n to ん
+      let inputValue = inputElt.value[inputElt.value.length - 1] == "n" ? inputElt.value.replace(/n$/, "ん") : inputElt.value;
+      updateStatusBoxes(this.state.currentWord, inputValue);
 
       // update probabilities before next word is chosen so don't choose same word
-      let inputWasCorrect = inputElt.value == this.state.currentWord.conjugation.conjugation || 
-      inputElt.value == this.state.currentWord.conjugation.kanjiConjugation;
+      let inputWasCorrect = inputValue == this.state.currentWord.conjugation.conjugation || 
+      inputValue == this.state.currentWord.conjugation.kanjiConjugation;
 
       updateProbabilites(this.state.currentWordList, this.state.wordsRecentlySeen,
         this.state.currentWord, inputWasCorrect);
 
       if (inputWasCorrect) {
-        this.state.currentWord = loadNewWord(this.state.currentWordList, 1, this.state.maxScoreObjects, this.state.maxScoreIndex);
+        addToScore(1, this.state.maxScoreObjects, this.state.maxScoreIndex);
+        this.state.currentStreakReset = false;
       } else {
-        document.getElementsByTagName("input")[0].disabled = true;
-        document.getElementById("press-any-key-text").style.display = "table-cell";
-        document.addEventListener("keydown", this.onAcceptIncorrectKeyHandler);
-        document.addEventListener("touchend", this.onAcceptIncorrectTouchHandler);
+        this.state.currentStreakReset = true;
       }
+
+      document.getElementsByTagName("input")[0].disabled = true;
+      document.getElementById("press-any-key-text").style.display = "table-cell";
+      document.addEventListener("keydown", this.onAcceptIncorrectKeyHandler);
+      document.addEventListener("touchend", this.onAcceptIncorrectTouchHandler);
 
       inputElt.value = "";
     }
@@ -1198,6 +1209,8 @@ class ConjugationApp {
 
     document.getElementById("main-view").style.display = "none";
     document.getElementById("options-view").style.display = "block";
+
+    this.state.currentStreakReset = true;
   }
 
   backButtonClicked(e) {
@@ -1254,8 +1267,10 @@ class ConjugationApp {
     }
 
     this.state.currentWordList = applySettings(this.state.settings, this.state.completeWordList);
-    this.state.currentWord = loadNewWord(this.state.currentWordList, 0, this.state.maxScoreObjects, this.state.maxScoreIndex);
+    this.state.currentWord = loadNewWord(this.state.currentWordList);
     this.state.wordsRecentlySeen = [];
+
+    this.state.currentStreakReset = false;
 
     document.getElementById("max-streak-text").textContent = this.state.maxScoreObjects[this.state.maxScoreIndex].score;
   }

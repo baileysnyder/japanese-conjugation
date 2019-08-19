@@ -64,6 +64,15 @@ p {
     }
 }
 
+.grow-correct-animation {
+    animation: grow-correct-animation 0.25s
+}
+
+@keyframes grow-correct-animation {
+    from { transform: scale(0); }
+    to {transform: scale(1); }
+}
+
 #max-streak {
     right: 0.23rem;
     float: right;
@@ -186,7 +195,7 @@ p {
 }
 
 #main-text-input:disabled {
-    background:rgb(158, 158, 158);
+    background:rgb(150, 150, 150);
 }
 
 #settings-container {
