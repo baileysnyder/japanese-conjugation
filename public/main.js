@@ -95,10 +95,11 @@ function wordPartOfSpeech(wordJSON) {
 }
 
 class Conjugation {
-  constructor(conjugation, kanjiConjugation, tense, affirmative, polite) {
-    this.conjugation = conjugation;
+  constructor(conjugations, tense, affirmative, polite) {
+    this.conjugations = conjugations;
+    //this.conjugation = conjugation;
     // currently if the word has no kanji, kanjiConjugation is just a duplicate of conjugation
-    this.kanjiConjugation = kanjiConjugation;
+    //this.kanjiConjugation = kanjiConjugation;
     this.tense = tense;
     this.affirmative = affirmative;
     this.polite = polite;
@@ -292,7 +293,7 @@ function iiConjugation(affirmative, polite, tense) {
     } else if (affirmative && !polite) {
       return "いい";
     } else if (!affirmative && polite) {
-      return "よくないです";
+      return ["よくないです", "よくありません"];
     } else if (!affirmative && !polite) {
       return "よくない";
     }
@@ -303,7 +304,7 @@ function iiConjugation(affirmative, polite, tense) {
     } else if (affirmative && !polite) {
       return "よかった";
     } else if (!affirmative && polite) {
-      return "よくなかったです";
+      return ["よくなかったです", "よくありませんでした"];
     } else if (!affirmative && !polite) {
       return "よくなかった";
     }
@@ -319,7 +320,11 @@ function irregularAdjectiveConjugation(hiraganaAdjective, affirmative, polite, t
   }
 
   else if (hiraganaAdjective == "かっこいい") {
-    return "かっこ" + iiConjugation(affirmative, polite, tense);
+    let conjugations = [].concat(iiConjugation(affirmative, polite, tense));
+    for (let i = 0; i < conjugations.length; i++) {
+      conjugations[i] = "かっこ" + conjugations[i];
+    }
+    return conjugations;
   }
 }
 
@@ -506,15 +511,15 @@ let conjugationFunctions = {
       }
 
       else if (!affirmative && polite && type == "i") {
-        return dropFinalLetter(hiraganaAdjective) + "くないです";
+        return [dropFinalLetter(hiraganaAdjective) + "くないです", dropFinalLetter(hiraganaAdjective) + "くありません"];
       } else if (!affirmative && polite && type == "na") {
-        return hiraganaAdjective + "じゃないです";
+        return [hiraganaAdjective + "じゃないです", hiraganaAdjective + "ではないです", hiraganaAdjective + "じゃありません", hiraganaAdjective + "ではありません"];
       }
 
       else if (!affirmative && !polite && type == "i") {
         return dropFinalLetter(hiraganaAdjective) + "くない";
       } else if (!affirmative && !polite && type == "na") {
-        return hiraganaAdjective + "じゃない";
+        return [hiraganaAdjective + "じゃない", hiraganaAdjective + "ではない"];
       }
     },
     past: function(hiraganaAdjective, type, affirmative, polite) {
@@ -535,15 +540,15 @@ let conjugationFunctions = {
       }
 
       else if (!affirmative && polite && type == "i") {
-        return dropFinalLetter(hiraganaAdjective) + "くなかったです";
+        return [dropFinalLetter(hiraganaAdjective) + "くなかったです", dropFinalLetter(hiraganaAdjective) + "くありませんでした"];
       } else if (!affirmative && polite && type == "na") {
-        return hiraganaAdjective + "じゃなかったです";
+        return [hiraganaAdjective + "じゃなかったです", hiraganaAdjective + "ではなかったです", hiraganaAdjective + "じゃありませんでした", hiraganaAdjective + "ではありませんでした"];
       }
 
       else if (!affirmative && !polite && type == "i") {
         return dropFinalLetter(hiraganaAdjective) + "くなかった";
       } else if (!affirmative && !polite && type == "na") {
-        return hiraganaAdjective + "じゃなかった";
+        return [hiraganaAdjective + "じゃなかった", hiraganaAdjective + "ではなかった"];
       }
     },
     adverb: function(hiraganaAdjective, type) {
@@ -613,13 +618,17 @@ function getAllConjugations(wordJSON) {
 
     hiraganaConj = conjFunctions[keys[keyIndex]](hiragana, wordJSON.type, affirmative, polite);
     kanjiConj = conjFunctions[keys[keyIndex]](kanji, wordJSON.type, affirmative, polite);
-    conj.push(new Conjugation(hiraganaConj, kanjiConj, conjFuncIndexToName(keyIndex, partOfSpeech), affirmative, polite));
+    let allConj = [];
+    allConj = allConj.concat(hiraganaConj, kanjiConj);
+    conj.push(new Conjugation(allConj, conjFuncIndexToName(keyIndex, partOfSpeech), affirmative, polite));
   }
 
   // te and adverb
   hiraganaConj = conjFunctions[keys[keys.length - 1]](hiragana, wordJSON.type);
   kanjiConj = conjFunctions[keys[keys.length - 1]](kanji, wordJSON.type);
-  conj.push(new Conjugation(hiraganaConj, kanjiConj, conjFuncIndexToName(keys.length - 1, partOfSpeech), null, null));
+  let allConj = [];
+  allConj = allConj.concat(hiraganaConj, kanjiConj);
+  conj.push(new Conjugation(allConj, conjFuncIndexToName(keys.length - 1, partOfSpeech), null, null));
 
   // array of Conjugation objects
   return conj;
@@ -814,7 +823,8 @@ function typeToWordBoxColor(type) {
 function updateStatusBoxes(word, entryText) {
   let statusBox = document.getElementById("status-box");
   statusBox.style.display = "inline-flex";
-  if (word.conjugation.conjugation == entryText || word.conjugation.kanjiConjugation == entryText) {
+
+  if (word.conjugation.conjugations.some( e => e == entryText)) {
     statusBox.style.background = "green";
     //statusBox.classList.add("grow-correct-animation");
     document.getElementById("status-text").innerHTML = "Correct" + "<br>" + entryText + " ○";
@@ -827,7 +837,7 @@ function updateStatusBoxes(word, entryText) {
     //statusBox.style.transform = "scale(1)";
     statusBox.style.background = "rgb(218, 5, 5)";
     document.getElementById("status-text").innerHTML = (entryText == "" ? "_" : entryText) +
-    " ×<br>" + word.conjugation.conjugation + " ○";
+    " ×<br>" + word.conjugation.conjugations[0] + " ○";
   }
 }
 
@@ -1167,8 +1177,7 @@ class ConjugationApp {
       updateStatusBoxes(this.state.currentWord, inputValue);
 
       // update probabilities before next word is chosen so don't choose same word
-      let inputWasCorrect = inputValue == this.state.currentWord.conjugation.conjugation || 
-      inputValue == this.state.currentWord.conjugation.kanjiConjugation;
+      let inputWasCorrect = this.state.currentWord.conjugation.conjugations.some(e => e == inputValue);
 
       updateProbabilites(this.state.currentWordList, this.state.wordsRecentlySeen,
         this.state.currentWord, inputWasCorrect);
