@@ -97,9 +97,6 @@ function wordPartOfSpeech(wordJSON) {
 class Conjugation {
   constructor(conjugations, tense, affirmative, polite) {
     this.conjugations = conjugations;
-    //this.conjugation = conjugation;
-    // currently if the word has no kanji, kanjiConjugation is just a duplicate of conjugation
-    //this.kanjiConjugation = kanjiConjugation;
     this.tense = tense;
     this.affirmative = affirmative;
     this.polite = polite;
@@ -751,16 +748,9 @@ function createWordList(JSONWords) {
 
 // 0 = verbs 1 = adjectives
 // storing in array instead of object to make parsing faster
-// import {verbs, adjectives} from "./verbs.js"
+import {wordData} from "./worddata.js";
 function getWords() {
-  let req = new XMLHttpRequest();
-  req.onload = function() {
-    let words = JSON.parse(this.responseText);
-    new ConjugationApp([words.verbs, words.adjectives]);
-  };
-  req.open("GET", "getwords.php", true);
-  req.send();
-  //return [verbs, adjectives];
+  new ConjugationApp([wordData.verbs, wordData.adjectives]);
 }
 
 function pickRandomWord(wordList) {
@@ -802,7 +792,7 @@ function addToScore(amount = 1, maxScoreObjects, maxScoreIndex) {
   current.textContent = parseInt(current.textContent) + amount;
   current.classList.add("grow-animation");
 }
-// rgb(255, 118, 20)
+
 function typeToWordBoxColor(type) {
   switch (type) {
     case "u":
@@ -826,15 +816,12 @@ function updateStatusBoxes(word, entryText) {
 
   if (word.conjugation.conjugations.some( e => e == entryText)) {
     statusBox.style.background = "green";
-    //statusBox.classList.add("grow-correct-animation");
     document.getElementById("status-text").innerHTML = "Correct" + "<br>" + entryText + " ○";
   } else {
     document.getElementById("verb-box").style.background = typeToWordBoxColor(word.wordJSON.type);
     changeVerbBoxFontColor("white");
     document.getElementById("verb-type").textContent = wordTypeToDisplayText(word.wordJSON.type);
-    //toggleClassName(statusBox, "grow-correct-animation", false);
-    //statusBox.style.opacity = "1";
-    //statusBox.style.transform = "scale(1)";
+
     statusBox.style.background = "rgb(218, 5, 5)";
     document.getElementById("status-text").innerHTML = (entryText == "" ? "_" : entryText) +
     " ×<br>" + word.conjugation.conjugations[0] + " ○";
@@ -858,7 +845,6 @@ function checkToEnableBackButton() {
     }
   }
 
-  //console.log("enabling back button");
   document.getElementById("back-button").disabled = false;
 }
 
@@ -883,7 +869,6 @@ function toggleError(errorElement, errorMessage, enabled) {
     let backButton = document.getElementById("back-button");
     errorElement.textContent = errorMessage;
     toggleDisplayNone(errorElement, false);
-    //console.log("I tried to disable back button");
     backButton.disabled = true;
   } else {
     toggleDisplayNone(errorElement, true);
@@ -1124,8 +1109,11 @@ class ConjugationApp {
     });
 
     document.getElementById("status-box").addEventListener("animationend", e => {
-      //document.getElementById("status-box").style.display = "none";
       document.getElementById("status-box").classList.remove(e.animationName);
+    });
+
+    document.getElementById("input-tooltip").addEventListener("animationend", e => {
+      document.getElementById("input-tooltip").classList.remove(e.animationName);
     });
 
     optionsMenuInit();
@@ -1155,8 +1143,11 @@ class ConjugationApp {
   resetMainView() {
     document.getElementsByTagName("input")[0].disabled = false;
     document.getElementsByTagName("input")[0].value = "";
+    document.getElementById('input-tooltip').classList.remove("tooltip-fade-animation");
+
     document.getElementById("press-any-key-text").style.display = "none";
     document.getElementById("status-box").style.display = "none";
+
     if (this.state.currentStreakReset) {
       document.getElementById("current-streak-text").textContent = "0";
       this.state.currentStreakReset = false;
@@ -1169,11 +1160,18 @@ class ConjugationApp {
     let keyCode = (e.keyCode ? e.keyCode : e.which);
     if (keyCode == '13') {
       let inputElt = document.getElementsByTagName("input")[0];
-      inputElt.blur();
       e.stopPropagation();
 
       // set hanging n to ん
       let inputValue = inputElt.value[inputElt.value.length - 1] == "n" ? inputElt.value.replace(/n$/, "ん") : inputElt.value;
+      if (!wanakana.isJapanese(inputValue)) {
+        document.getElementById('input-tooltip').classList.add("tooltip-fade-animation");
+        return;
+      } else {
+        document.getElementById('input-tooltip').classList.remove("tooltip-fade-animation");
+      }
+
+      inputElt.blur();
       updateStatusBoxes(this.state.currentWord, inputValue);
 
       // update probabilities before next word is chosen so don't choose same word
@@ -1258,7 +1256,6 @@ class ConjugationApp {
   initState(words) {
     this.state = {};
     this.state.completeWordList = createWordList(words);
-    //localStorage.clear();
 
     if (!localStorage.getItem("maxScoreIndex")) {
       this.state.maxScoreIndex = 0;

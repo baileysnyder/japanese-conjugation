@@ -7,7 +7,7 @@
         <meta name="description" content="Learn how to conjugate Japanese verbs and adjectives! Includes present tense, past tense, te form, and adverbs.">
         <link rel="stylesheet" href="./style.css">
         <link rel="icon" href="http://baileysnyder.com/favicon.png">
-        <script defer src="./wanakana.min.js"></script>    
+        <script defer src="./wanakana.min.js"></script>
         <script type="module" defer src="./main.js"></script>
     </head>
     <body>
@@ -44,6 +44,7 @@
                         </div>
                     </div>
                     <div id="input-container">
+                        <div id="input-tooltip" class="tooltip">Invalid characters. Only Japanese kana and kanji are valid.</div>
                         <input id="main-text-input" type="text" maxlength="30">
                     </div>
                     <div id="settings-container">
@@ -85,7 +86,8 @@
                             <tr><td><input type="checkbox" name="verbpast" class="verb-uses-affirmative-polite"> Past tense</td></tr>
                             <tr><td><input type="checkbox" name="verbte"> て-form</td></tr>
                         </table>
-                        <div id="verb-affirmative-polite-container" class="options-indent">
+                        <div id="verb-affirmative-polite-container">
+                            <hr>
                             <table style="width:100%" class="options-group">
                                 <tr>
                                     <td><input type="checkbox" name="verbaffirmative"> Affirmative</td>
@@ -125,7 +127,8 @@
                             <tr><td><input type="checkbox" name="adjectivepast" class="adjective-uses-affirmative-polite"> Past tense</td></tr>
                             <tr><td><input type="checkbox" name="adjectiveadverb"> Adverb</td></tr>
                         </table>
-                        <div id="adjective-affirmative-polite-container" class="options-indent">
+                        <div id="adjective-affirmative-polite-container">
+                            <hr>
                             <table style="width:100%" class="options-group">
                                 <tr>
                                     <td><input type="checkbox" name="adjectiveaffirmative"> Affirmative</td>

@@ -42,37 +42,6 @@ p {
     to {transform: scale(1); }
 }
 
-.grow-fade-animation {
-    animation: grow-fade-animation 2.2s;
-}
-
-@keyframes grow-fade-animation {
-    0% {
-        transform: scale(0);
-        opacity: 1;
-    }
-    13% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    75% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    100% {
-        opacity: 0;
-    }
-}
-
-.grow-correct-animation {
-    animation: grow-correct-animation 0.25s
-}
-
-@keyframes grow-correct-animation {
-    from { transform: scale(0); }
-    to {transform: scale(1); }
-}
-
 #max-streak {
     right: 0.23rem;
     float: right;
@@ -173,7 +142,51 @@ p {
     text-align: center;
     padding-top: 0.36rem;
     margin: 0.45rem;
+    position: relative;
 }
+
+.tooltip-fade-animation {
+    animation: tooltip-fade-animation 6s;
+}
+
+@keyframes tooltip-fade-animation {
+    0% {
+        opacity: 0;
+    }
+    6% {
+        opacity: 1;
+    }
+    80% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+.tooltip {
+    position: absolute;
+    font-size: 0.68rem;
+    color: white;
+    background: red;
+    border-radius: 0.3rem;
+    padding: 0 0.4rem;
+    bottom: 100%;
+    left: 7%;
+
+    opacity: 0;
+}
+
+.tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 14%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: red transparent transparent transparent;
+  }
 
 #main-text-input, #settings-child-container {
     width: 88%;
@@ -313,10 +326,6 @@ h2 {
 
 .hide-furigana rt, .display-none{
     display: none;
-}
-
-#verb-affirmative-polite-container, #adjective-affirmative-polite-container {
-    margin-top: 0.55rem;
 }
 
 hr {
