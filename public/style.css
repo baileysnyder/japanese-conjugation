@@ -342,3 +342,14 @@ hr {
     margin-left: 0;
     margin-right: 0;
 }
+
+.footer-text {
+    color: gray;
+    font-size: 0.61rem;
+    margin-bottom: 0.1rem;
+}
+
+#donation-seciton {
+    text-align: center;
+    display: none;
+}

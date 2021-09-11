@@ -1216,6 +1216,7 @@ class ConjugationApp {
 
     document.getElementById("main-view").style.display = "none";
     document.getElementById("options-view").style.display = "block";
+    document.getElementById("donation-seciton").style.display = "block";
 
     this.state.currentStreakReset = true;
   }
@@ -1251,6 +1252,7 @@ class ConjugationApp {
 
     document.getElementById("main-view").style.display = "block";
     document.getElementById("options-view").style.display = "none";
+    document.getElementById("donation-seciton").style.display = "none";
   }
   
   initState(words) {
