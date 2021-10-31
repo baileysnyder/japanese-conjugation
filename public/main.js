@@ -303,28 +303,28 @@ function irregularVerbConjugation(hiraganaVerb, affirmative, polite, tense) {
 function iiConjugation(affirmative, polite, tense) {
   if (tense == "present") {
     if (affirmative && polite) {
-      return "いいです";
+      return ["いいです", "良いです"];
     } else if (affirmative && !polite) {
-      return "いい";
+      return ["いい", "良い"];
     } else if (!affirmative && polite) {
-      return ["よくないです", "よくありません"];
+      return ["よくないです", "よくありません", "良くないです", "良くありません"];
     } else if (!affirmative && !polite) {
-      return "よくない";
+      return ["よくない","良くない"];
     }
   }
   else if (tense == "past") {
     if (affirmative && polite) {
-      return "よかったです";
+      return ["よかったです", "良かったです"];
     } else if (affirmative && !polite) {
-      return "よかった";
+      return ["よかった", "良かった"];
     } else if (!affirmative && polite) {
-      return ["よくなかったです", "よくありませんでした"];
+      return ["よくなかったです", "よくありませんでした", "良くなかったです", "良くありませんでした"];
     } else if (!affirmative && !polite) {
-      return "よくなかった";
+      return ["よくなかった", "良くなかった"];
     }
   }
   else if (tense == "adverb") {
-    return "よく";
+    return ["よく", "良く"];
   }
 }
 
@@ -629,14 +629,24 @@ function getAllConjugations(wordJSON) {
     }
     polite = !polite;
 
-    let keyIndex = Math.floor(i / 4)
+    let keyIndex = Math.floor(i / 4);
+
     // don't need present plain affirmative since it's the dictionary form
     if (affirmative && !polite && keyIndex == 0 && wordJSON.type != "na") continue;
 
     hiraganaConj = conjFunctions[keys[keyIndex]](hiragana, wordJSON.type, affirmative, polite);
     kanjiConj = conjFunctions[keys[keyIndex]](kanji, wordJSON.type, affirmative, polite);
+
+    let altOkuriganaConj = [];
+    if (wordJSON.altOkurigana && wordJSON.altOkurigana.length) {
+      for (let altIndex = 0; altIndex < wordJSON.altOkurigana.length; altIndex++){
+        let altOkurigana = wordJSON.altOkurigana[altIndex];
+        altOkuriganaConj = altOkuriganaConj.concat(conjFunctions[keys[keyIndex]](altOkurigana, wordJSON.type, affirmative, polite));
+      }
+    }
+
     let allConj = [];
-    allConj = allConj.concat(hiraganaConj, kanjiConj);
+    allConj = allConj.concat(hiraganaConj, kanjiConj, altOkuriganaConj);
     conj.push(new Conjugation(allConj, conjFuncIndexToName(keyIndex, partOfSpeech), affirmative, polite));
   }
 
