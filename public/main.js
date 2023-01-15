@@ -1,6 +1,10 @@
 // since the weights are mostly only used to make things repeat after x amount of rounds, they are overkill
 // would be less work to just wait x rounds and immeditely show what you missed, without updating any weights.
 "use strict";
+import {bind, isJapanese } from 'wanakana'
+import {optionRemoveFunctions, showFurigana, showEmojis} from "./optionfunctions.js";
+import {wordData} from "./worddata.js";
+
 let isTouch = (('ontouchstart' in window) || (navigator.msMaxTouchPoints > 0));
 document.getElementById("press-any-key-text").textContent = isTouch ? "Tap to continue" : "Press Enter/Return to continue";
 
@@ -40,21 +44,21 @@ function conjugationInqueryFormatting(conjugation) {
   let newString = "";
 
   if (conjugation.tense == "Past") {
-    newString += "<ruby>Past<rt>⌚</rt></ruby> ";
+    newString += '<div class="conjugation-inquery"><div class="inquery-emoji">⌚</div><div class="inquery-text">Past</div></div> ';
   } else if (conjugation.tense == "て-form" || conjugation.tense == "Adverb") {
     newString += conjugation.tense;
   }
 
   if (conjugation.affirmative === true) {
-    newString += "<ruby>Affirmative<rt>✅</rt></ruby> ";
+    newString += '<div class="conjugation-inquery"><div class="inquery-emoji">✅</div><div class="inquery-text">Affirmative</div></div> ';
   } else if (conjugation.affirmative === false) {
-    newString += "<ruby>Negative<rt>🚫</rt></ruby> ";
+    newString += '<div class="conjugation-inquery"><div class="inquery-emoji">🚫</div><div class="inquery-text">Negative</div></div> ';
   }
 
   if (conjugation.polite === true) {
-    newString += "<ruby>Polite<rt>👔</rt></ruby>";
+    newString += '<div class="conjugation-inquery"><div class="inquery-emoji">👔</div><div class="inquery-text">Polite</div></div>';
   } else if (conjugation.polite === false) {
-    newString += "<ruby>Plain<rt>👪</rt></ruby>";
+    newString += '<div class="conjugation-inquery"><div class="inquery-emoji">👪</div><div class="inquery-text">Plain</div></div>';
   }
 
   return newString;
@@ -778,7 +782,7 @@ function createWordList(JSONWords) {
 
 // 0 = verbs 1 = adjectives
 // storing in array instead of object to make parsing faster
-import {wordData} from "./worddata.js";
+
 function getWords() {
   new ConjugationApp([wordData.verbs, wordData.adjectives]);
 }
@@ -1054,8 +1058,6 @@ function optionsMenuInit() {
   optionsView.addEventListener("click", adjPresAffPlainCheckError);
 }
 
-import {optionRemoveFunctions, showFurigana, showEmojis} from "./optionfunctions.js";
-
 function applySettings(settings, completeWordList) {
   showFurigana(settings.furigana);
   showEmojis(settings.emoji);
@@ -1123,7 +1125,7 @@ function findSettingCombination(maxScoreObjects, settings) {
 class ConjugationApp {
   constructor(words) {
     let input = document.getElementsByTagName("input")[0];
-    wanakana.bind(input);
+    bind(input);
 
     this.initState(words);
 
@@ -1192,9 +1194,20 @@ class ConjugationApp {
       let inputElt = document.getElementsByTagName("input")[0];
       e.stopPropagation();
 
-      // set hanging n to ん
-      let inputValue = inputElt.value[inputElt.value.length - 1] == "n" ? inputElt.value.replace(/n$/, "ん") : inputElt.value;
-      if (!wanakana.isJapanese(inputValue)) {
+      
+      let inputValue = inputElt.value;
+      const finalChar = inputValue[inputValue.length - 1];
+      switch(finalChar) {
+        // Set hanging n to ん
+        case("n"):
+          inputValue = inputValue.replace(/n$/, "ん");
+          break;
+        // Remove hanging 。
+        case("。"):
+          inputValue = inputValue.replace(/。$/, "");
+      }
+
+      if (!isJapanese(inputValue)) {
         document.getElementById('input-tooltip').classList.add("tooltip-fade-animation");
         return;
       } else {
@@ -1314,63 +1327,5 @@ class ConjugationApp {
   }
 }
 
-function clampNumber(number, min, max) {
-  if (number < min) {
-    return min;
-  } else if (number > max) {
-    return max;
-  } else {
-    return number;
-  }
-}
-
-function lerp(value1, value2, amount) {
-  amount = amount < 0 ? 0 : amount;
-  amount = amount > 1 ? 1 : amount;
-  return value1 + (value2 - value1) * amount;
-}
-
-function resizeBetweenBounds(mins, maxs) {
-  let clamped = clampNumber(window.innerWidth, mins.pixWidth, maxs.pixWidth);
-  let percentage = (clamped - mins.pixWidth) / (maxs.pixWidth - mins.pixWidth);
-  document.getElementById("toppest-container").style.width = lerp(mins.widthPercent, maxs.widthPercent, percentage) + "%";
-
-  let smallestRemFraction = mins.font / mins.pixWidth, largestRemFraction = maxs.font / maxs.pixWidth;
-  let currentFraction = lerp(smallestRemFraction, largestRemFraction, percentage);
-
-  document.documentElement.style.fontSize = (window.innerWidth * currentFraction) + "px";
-  document.getElementById("verb-box").style.top = lerp(mins.verbBoxTop, maxs.verbBoxTop, percentage) + "rem";
-  document.getElementById("verb-box").style.marginBottom = 1 + lerp(mins.verbBoxTop, maxs.verbBoxTop, percentage) + "rem";
-}
-
-function onResizeBody() {
-  let vals320 = {
-    pixWidth: 320,
-    font: 12,
-    widthPercent: 100,
-    verbBoxTop: -0.09
-  }
-  let vals1366 = {
-    pixWidth: 1366,
-    font: 20,
-    widthPercent: 50,
-    verbBoxTop: -0.91
-  }
-  let vals1920 = {
-    pixWidth: 1920,
-    font: 22,
-    widthPercent: 38,
-    verbBoxTop: -1
-  }
-
-  if (window.innerWidth < 1366) {
-    resizeBetweenBounds(vals320, vals1366);
-  } else {
-    resizeBetweenBounds(vals1366,vals1920);
-  }
-}
-
 getWords();
-window.addEventListener("resize", onResizeBody);
-onResizeBody();
 toggleDisplayNone(document.getElementById("toppest-container"), false);
