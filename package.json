@@ -6,6 +6,6 @@
   "source": "src/index.html",
   "scripts": {
     "dev": "parcel --dist-dir ./hot-reload-temp",
-    "build": "parcel build --dist-dir ./dist --no-source-maps"
+    "build": "parcel build --dist-dir ./dist --no-source-maps --public-url ./"
   }
 }
