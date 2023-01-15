@@ -1,12 +1,20 @@
+html {
+    font-family: "Open Sans", "Arial", sans-serif;
+    font-size: 16px
+}
+
 body {
     background: rgb(34, 34, 31);
     --whiteTextColor: rgb(232, 232, 232);
+    margin: 0;
 }
 
 h1 {
     text-align: center;
     color: var(--whiteTextColor);
-    font-size: 1.5rem;
+    font-size: 1.1rem;
+    margin-bottom: 0;
+    margin-top: 0.6rem;
 }
 
 p {
@@ -14,13 +22,10 @@ p {
     color: var(--whiteTextColor);
 }
 
-* {
-    font-family: "メイリオ"
-}
-
 .streak p {
-    margin: 0.3em;
-    font-size: 0.75rem;
+    margin: 0;
+    margin-bottom: 0;
+    font-size: 0.7rem;
 }
 
 #current-streak {
@@ -52,9 +57,11 @@ p {
 }
 
 #top-container {
-    margin: 0;
+    margin: 0.6rem;
     border-radius: 0.64rem;
-    padding: 0.73rem;
+    padding: 0.6rem;
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
     box-shadow: 0.3rem 0.3rem 0.36rem rgb(28, 28, 28);
     background: rgb(44, 43, 41);
 }
@@ -65,9 +72,13 @@ p {
     clear: both;
 }
 
+#streak-container {
+    padding: 0.4rem;
+    padding-top: 0.3rem;
+}
+
 #verb-box {
     display: inline-block;
-    /*background: rgb(165, 100, 40);*/
     padding: 0.45rem;
     border-radius: 1.14rem;
     /* Using position relative because setting negative margins caused alignment to rely on streak text above*/
@@ -81,15 +92,13 @@ p {
 }
 
 #verb-container {
-    margin-top: 0;
     text-align: center;
-    margin-bottom: -0.45rem;
 }
 
 #verb-text {
-    font-size: 2.1rem;
+    font-size: 2.2rem;
     margin-top: 0;
-    margin-bottom: -0.27rem;
+    margin-bottom: -1rem;
 }
 
 #definition {
@@ -98,21 +107,20 @@ p {
     margin-bottom: 0.18rem;
 }
 
-/* Wait until select font to fix issue where hiragana causes all elements below to move down slightly */
 #verb-type {
-    min-height: 1.05rem;
-    font-size: 0.91rem;
+    line-height: 1;
+    font-size: 0.8rem;
     margin: 0;
 }
 
 #conjugation-inquery-text {
-    font-size: 1.36rem;
-    margin: 0.45rem;
+    font-size: 1.3rem;
+    margin-top: 0.8rem;
+    margin-bottom: 0.5rem;
 }
 
 #status-container {
     text-align: center;
-    margin: 1.09rem;
     min-height: 4rem;
 }
 
@@ -143,6 +151,7 @@ p {
     padding-top: 0.36rem;
     margin: 0.45rem;
     position: relative;
+    margin-bottom: 0.3rem;
 }
 
 .tooltip-fade-animation {
@@ -166,7 +175,7 @@ p {
 
 .tooltip {
     position: absolute;
-    font-size: 0.68rem;
+    font-size: 0.66rem;
     color: white;
     background: red;
     border-radius: 0.3rem;
@@ -267,11 +276,11 @@ button:disabled {
 }
 
 h2 {
-    margin-top: 0;
-    margin-bottom: 0.45rem;
     text-align: center;
     color: var(--whiteTextColor);
-    font-size: 1.1rem;
+    margin-top: 0.1rem;
+    margin-bottom: 0.45rem;
+    font-size: 1rem;
 }
 
 #options-view {
@@ -281,7 +290,7 @@ h2 {
 }
 
 #options-form {
-    font-size: 0.64rem;
+    font-size: 0.8rem;
     text-align: left;
     color: var(--whiteTextColor);
 }
@@ -291,10 +300,15 @@ h2 {
     margin: 0.18rem;
 }
 
+#top-must-choose {
+    max-width: 70%;
+}
+
 .must-choose-one-text {
     float:right;
     color: rgb(236, 51, 51);
     text-align: right;
+    font-size: 0.6rem;
 }
 
 #options-form td:not(.must-choose-one-text) {
@@ -324,7 +338,7 @@ h2 {
     margin-bottom: 0;
 }
 
-.hide-furigana rt, .display-none{
+.hide-furigana rt, .display-none, .hide-emojis .inquery-emoji {
     display: none;
 }
 
@@ -350,6 +364,68 @@ hr {
 }
 
 #donation-seciton {
+    margin: 0.6rem;
     text-align: center;
     display: none;
+}
+
+.conjugation-inquery {
+    display: inline-block;
+}
+
+.inquery-emoji {
+    font-size: 0.7rem;
+    line-height: 1.1;
+}
+
+.inquery-text {
+    line-height: 1.1;
+}
+
+@media screen and (min-width: 510px) {
+    html {
+        font-size: 18px;
+    }
+    #toppest-container {
+        width: 510px;
+    }
+    #top-container {
+        padding: .6rem .6rem;
+    }
+    h1 {
+        font-size: 1.4rem;
+        margin-bottom: 0.9rem;
+        margin-top: 0.9rem;
+    }
+    #input-container {
+        margin-bottom: 0.4rem;
+    }
+    #conjugation-inquery-text {
+        margin-top: 1rem;
+    }
+    #status-container {
+        margin: 1rem;
+    }
+}
+
+@media screen and (min-width: 750px) {
+    html {
+        font-size: 20px;
+    }
+    #toppest-container {
+        width: 575px;
+    }   
+}
+
+@media screen and (min-width: 1100px) {
+    html {
+        font-size: 22px;
+    }
+    #toppest-container {
+        width: 650px;
+    }
+    h1 {
+        margin-bottom: 1rem;
+        margin-top: 1rem;
+    }   
 }

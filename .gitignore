@@ -1,1 +1,4 @@
-jaconj_mysql_credentials.php
+/node_modules
+/dist
+/hot-reload-temp
+/.parcel-cache

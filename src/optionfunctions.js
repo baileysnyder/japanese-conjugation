@@ -15,8 +15,7 @@ function isNotTense(word, s) {
 // when an option is set to true, these filter functions will be used
 // input is a Word from main.js
 // create sub array with all verbs, then run affirmative, polite checks on sub array to avoid checking if verb twice
-export let optionRemoveFunctions = {
-    // Verbs
+export const optionRemoveFunctions = {
     verb: function(x) {
         return wordPartOfSpeech(x) != "v";
     },
@@ -57,7 +56,6 @@ export let optionRemoveFunctions = {
         }
     },
 
-    // Adjectives
     adjective: function(x) {
         return wordPartOfSpeech(x) != "a";
     },
@@ -99,10 +97,10 @@ export let optionRemoveFunctions = {
     }
 };
 
-export let showFurigana = function(show) {
+export const showFurigana = function(show) {
     document.getElementById("verb-text").className = show ? "" : "hide-furigana";
 }
 
-export let showEmojis = function(show) {
-    document.getElementById("conjugation-inquery-text").className = show ? "" : "hide-furigana";
+export const showEmojis = function(show) {
+    document.getElementById("conjugation-inquery-text").className = show ? "" : "hide-emojis";
 }

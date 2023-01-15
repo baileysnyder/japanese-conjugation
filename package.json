@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "parcel": "^2.8.2",
+    "wanakana": "^5.0.2"
+  },
+  "source": "src/index.html",
+  "scripts": {
+    "dev": "parcel --dist-dir ./hot-reload-temp",
+    "build": "parcel build --dist-dir ./dist --no-source-maps --public-url ./"
+  }
+}
