@@ -850,6 +850,7 @@ function updateStatusBoxes(word, entryText) {
 
   if (word.conjugation.conjugations.some( e => e == entryText)) {
     statusBox.style.background = "green";
+    document.getElementById("verb-type").textContent = wordTypeToDisplayText(word.wordJSON.type);
     document.getElementById("status-text").innerHTML = "Correct" + "<br>" + entryText + " ○";
   } else {
     document.getElementById("verb-box").style.background = typeToWordBoxColor(word.wordJSON.type);
