@@ -2,7 +2,7 @@
 // would be less work to just wait x rounds and immeditely show what you missed, without updating any weights.
 "use strict";
 import {bind, isJapanese } from 'wanakana'
-import {optionRemoveFunctions, showFurigana, showEmojis} from "./optionfunctions.js";
+import {optionRemoveFunctions, showFurigana, showEmojis, showStreak} from "./optionfunctions.js";
 import {wordData} from "./worddata.js";
 
 let isTouch = (('ontouchstart' in window) || (navigator.msMaxTouchPoints > 0));
@@ -23,6 +23,7 @@ function removeIrrelevantSettingsMaxScore(settings) {
   
   delete coolSettings.furigana;
   delete coolSettings.emoji;
+  delete coolSettings.streak;
   return coolSettings;
 }
 
@@ -1061,6 +1062,7 @@ function optionsMenuInit() {
 function applySettings(settings, completeWordList) {
   showFurigana(settings.furigana);
   showEmojis(settings.emoji);
+  showStreak(settings.streak);
 
   let currentWordList = createArrayOfArrays(completeWordList.length);
 
@@ -1271,7 +1273,7 @@ class ConjugationApp {
     let newMaxScoreSettings = {};
     for (let input of Array.from(inputs)) {
       this.state.settings[input.name] = input.checked;
-      if (input.offsetWidth > 0 && input.offsetHeight > 0 && input.name != "furigana" && input.name != "emoji") {
+      if (input.offsetWidth > 0 && input.offsetHeight > 0 && input.name != "furigana" && input.name != "emoji" && input.name != "streak") {
         newMaxScoreSettings[input.name] = input.checked;
       }
     }
