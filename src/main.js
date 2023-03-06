@@ -818,14 +818,18 @@ function addToScore(amount = 1, maxScoreObjects, maxScoreIndex) {
   if (parseInt(max.textContent) <= parseInt(current.textContent)) {
     let newAmount = parseInt(max.textContent) + amount
     max.textContent = newAmount;
-    max.classList.add("grow-animation");
+    if (!document.getElementById("max-streak").classList.contains("display-none")) {
+      max.classList.add("grow-animation");
+    }
 
     maxScoreObjects[maxScoreIndex].score = newAmount;
     localStorage.setItem("maxScoreObjects", JSON.stringify(maxScoreObjects));
   }
 
   current.textContent = parseInt(current.textContent) + amount;
-  current.classList.add("grow-animation");
+  if (!document.getElementById("current-streak").classList.contains("display-none")) {
+    current.classList.add("grow-animation");
+  }
 }
 
 function typeToWordBoxColor(type) {

@@ -338,7 +338,7 @@ h2 {
     margin-bottom: 0;
 }
 
-.hide-furigana rt, .display-none, .hide-emojis .inquery-emoji, .hide-streak {
+.hide-furigana rt, .display-none, .hide-emojis .inquery-emoji {
     display: none;
 }
 

@@ -106,5 +106,11 @@ export const showEmojis = function(show) {
 }
 
 export const showStreak = function(show) {
-    document.getElementById("streak-container").className = show ? "" : "hide-streak";
+    document.querySelectorAll(".streak").forEach(s => {
+        if (show) {
+            s.classList.remove("display-none")
+        } else {
+            s.classList.add("display-none")
+        }
+    });
 }
