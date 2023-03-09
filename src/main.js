@@ -1319,7 +1319,7 @@ class ConjugationApp {
       localStorage.setItem("maxScoreObjects", JSON.stringify(this.state.maxScoreObjects));
     } else {
       this.state.maxScoreIndex = localStorage.getItem("maxScoreIndex");
-      this.state.settings = JSON.parse(localStorage.getItem("settings"));
+      this.state.settings = Object.assign(defaultSettings(), JSON.parse(localStorage.getItem("settings")));
       this.state.maxScoreObjects = JSON.parse(localStorage.getItem("maxScoreObjects"));
     }
 
