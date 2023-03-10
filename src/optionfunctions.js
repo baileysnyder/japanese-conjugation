@@ -104,3 +104,13 @@ export const showFurigana = function(show) {
 export const showEmojis = function(show) {
     document.getElementById("conjugation-inquery-text").className = show ? "" : "hide-emojis";
 }
+
+export const showStreak = function(show) {
+    document.querySelectorAll(".streak").forEach(s => {
+        if (show) {
+            s.classList.remove("display-none")
+        } else {
+            s.classList.add("display-none")
+        }
+    });
+}

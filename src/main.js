@@ -2,7 +2,7 @@
 // would be less work to just wait x rounds and immeditely show what you missed, without updating any weights.
 "use strict";
 import {bind, isJapanese } from 'wanakana'
-import {optionRemoveFunctions, showFurigana, showEmojis} from "./optionfunctions.js";
+import {optionRemoveFunctions, showFurigana, showEmojis, showStreak} from "./optionfunctions.js";
 import {wordData} from "./worddata.js";
 
 let isTouch = (('ontouchstart' in window) || (navigator.msMaxTouchPoints > 0));
@@ -23,6 +23,7 @@ function removeIrrelevantSettingsMaxScore(settings) {
   
   delete coolSettings.furigana;
   delete coolSettings.emoji;
+  delete coolSettings.streak;
   return coolSettings;
 }
 
@@ -817,14 +818,18 @@ function addToScore(amount = 1, maxScoreObjects, maxScoreIndex) {
   if (parseInt(max.textContent) <= parseInt(current.textContent)) {
     let newAmount = parseInt(max.textContent) + amount
     max.textContent = newAmount;
-    max.classList.add("grow-animation");
+    if (!document.getElementById("max-streak").classList.contains("display-none")) {
+      max.classList.add("grow-animation");
+    }
 
     maxScoreObjects[maxScoreIndex].score = newAmount;
     localStorage.setItem("maxScoreObjects", JSON.stringify(maxScoreObjects));
   }
 
   current.textContent = parseInt(current.textContent) + amount;
-  current.classList.add("grow-animation");
+  if (!document.getElementById("current-streak").classList.contains("display-none")) {
+    current.classList.add("grow-animation");
+  }
 }
 
 function typeToWordBoxColor(type) {
@@ -1061,6 +1066,7 @@ function optionsMenuInit() {
 function applySettings(settings, completeWordList) {
   showFurigana(settings.furigana);
   showEmojis(settings.emoji);
+  showStreak(settings.streak);
 
   let currentWordList = createArrayOfArrays(completeWordList.length);
 
@@ -1271,7 +1277,7 @@ class ConjugationApp {
     let newMaxScoreSettings = {};
     for (let input of Array.from(inputs)) {
       this.state.settings[input.name] = input.checked;
-      if (input.offsetWidth > 0 && input.offsetHeight > 0 && input.name != "furigana" && input.name != "emoji") {
+      if (input.offsetWidth > 0 && input.offsetHeight > 0 && input.name != "furigana" && input.name != "emoji" && input.name != "streak") {
         newMaxScoreSettings[input.name] = input.checked;
       }
     }
@@ -1313,7 +1319,7 @@ class ConjugationApp {
       localStorage.setItem("maxScoreObjects", JSON.stringify(this.state.maxScoreObjects));
     } else {
       this.state.maxScoreIndex = localStorage.getItem("maxScoreIndex");
-      this.state.settings = JSON.parse(localStorage.getItem("settings"));
+      this.state.settings = Object.assign(defaultSettings(), JSON.parse(localStorage.getItem("settings")));
       this.state.maxScoreObjects = JSON.parse(localStorage.getItem("maxScoreObjects"));
     }
 
