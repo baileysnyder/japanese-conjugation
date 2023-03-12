@@ -322,6 +322,10 @@ h2 {
     height: 0.6rem;
 }
 
+#options-form label {
+    padding-left: 0.25rem;
+}
+
 .options-indent {
     padding-left: 1.36rem;
 }

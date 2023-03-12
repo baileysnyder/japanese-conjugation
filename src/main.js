@@ -820,7 +820,7 @@ function addToScore(amount = 1, maxScoreObjects, maxScoreIndex) {
     max.textContent = newAmount;
     if (!document.getElementById("max-streak").classList.contains("display-none")) {
       max.classList.add("grow-animation");
-    }
+    }  
 
     maxScoreObjects[maxScoreIndex].score = newAmount;
     localStorage.setItem("maxScoreObjects", JSON.stringify(maxScoreObjects));
@@ -828,8 +828,8 @@ function addToScore(amount = 1, maxScoreObjects, maxScoreIndex) {
 
   current.textContent = parseInt(current.textContent) + amount;
   if (!document.getElementById("current-streak").classList.contains("display-none")) {
-    current.classList.add("grow-animation");
-  }
+      current.classList.add("grow-animation");
+    }  
 }
 
 function typeToWordBoxColor(type) {
@@ -1155,27 +1155,6 @@ class ConjugationApp {
     });
 
     optionsMenuInit();
-
-    // need to define this here so the event handler can be removed from within the function and still reference this
-    let onAcceptIncorrectKey = function(e) {
-      let keyCode = (e.keyCode ? e.keyCode : e.which);
-      if (keyCode == '13') {
-        document.removeEventListener("keydown", this.onAcceptIncorrectKeyHandler);
-        document.removeEventListener("touchend", this.onAcceptIncorrectTouchHandler);
-        this.resetMainView();
-      }
-    }
-
-    let onAcceptIncorrectTouch = function(e) {
-      if (e.target != document.getElementById("options-button")) {
-        document.removeEventListener("keydown", this.onAcceptIncorrectKeyHandler);
-        document.removeEventListener("touchend", this.onAcceptIncorrectTouchHandler);
-        this.resetMainView();
-      }
-    }
-
-    this.onAcceptIncorrectKeyHandler = onAcceptIncorrectKey.bind(this);
-    this.onAcceptIncorrectTouchHandler = onAcceptIncorrectTouch.bind(this);
   }
 
   resetMainView() {
@@ -1186,12 +1165,33 @@ class ConjugationApp {
     document.getElementById("press-any-key-text").style.display = "none";
     document.getElementById("status-box").style.display = "none";
 
-    if (this.state.currentStreakReset) {
+    if (this.state.currentStreak0OnReset) {
       document.getElementById("current-streak-text").textContent = "0";
-      this.state.currentStreakReset = false;
+      this.state.currentStreak0OnReset = false;
     }
 
-    this.state.currentWord = loadNewWord(this.state.currentWordList);
+    if (this.state.loadWordOnReset) {
+      this.state.currentWord = loadNewWord(this.state.currentWordList);
+      this.state.loadWordOnReset = false;
+    }
+    
+  }
+
+  onResultsViewKeyDown(e) {
+    let keyCode = (e.keyCode ? e.keyCode : e.which);
+    if (keyCode == '13') {
+      document.removeEventListener("keydown", this.onResultsViewKeyDown);
+      document.removeEventListener("touchend", this.onResultsViewTouchEnd);
+      this.resetMainView();
+    }
+  }
+
+  onResultsViewTouchEnd(e) {
+    if (e.target != document.getElementById("options-button")) {
+      document.removeEventListener("keydown", this.onResultsViewKeyDown);
+      document.removeEventListener("touchend", this.onResultsViewTouchEnd);
+      this.resetMainView();
+    }
   }
 
   inputKeyPress(e) {
@@ -1199,7 +1199,6 @@ class ConjugationApp {
     if (keyCode == '13') {
       let inputElt = document.getElementsByTagName("input")[0];
       e.stopPropagation();
-
       
       let inputValue = inputElt.value;
       const finalChar = inputValue[inputValue.length - 1];
@@ -1231,23 +1230,24 @@ class ConjugationApp {
 
       if (inputWasCorrect) {
         addToScore(1, this.state.maxScoreObjects, this.state.maxScoreIndex);
-        this.state.currentStreakReset = false;
+        this.state.currentStreak0OnReset = false;
       } else {
-        this.state.currentStreakReset = true;
+        this.state.currentStreak0OnReset = true;
       }
+      this.state.loadWordOnReset = true;
 
       document.getElementsByTagName("input")[0].disabled = true;
       document.getElementById("press-any-key-text").style.display = "table-cell";
-      document.addEventListener("keydown", this.onAcceptIncorrectKeyHandler);
-      document.addEventListener("touchend", this.onAcceptIncorrectTouchHandler);
+      document.addEventListener("keydown", this.onResultsViewKeyDown.bind(this));
+      document.addEventListener("touchend", this.onResultsViewTouchEnd.bind(this));
 
       inputElt.value = "";
     }
   }
 
   settingsButtonClicked(e) {
-    document.removeEventListener("keydown", this.onAcceptIncorrectKeyHandler);
-    document.removeEventListener("touchend", this.onAcceptIncorrectTouchHandler);
+    document.removeEventListener("keydown", this.onResultsViewKeyDown);
+    document.removeEventListener("touchend", this.onResultsViewTouchEnd);
 
     let inputs = document.getElementById("options-form").querySelectorAll('[type="checkbox"]');
     for (let input of Array.from(inputs)) {
@@ -1265,9 +1265,7 @@ class ConjugationApp {
 
     document.getElementById("main-view").style.display = "none";
     document.getElementById("options-view").style.display = "block";
-    document.getElementById("donation-seciton").style.display = "block";
-
-    this.state.currentStreakReset = true;
+    document.getElementById("donation-seciton").style.display = "block";   
   }
 
   backButtonClicked(e) {
@@ -1290,14 +1288,18 @@ class ConjugationApp {
       settingsIndex = this.state.maxScoreObjects.length - 1;
     }
 
-    localStorage.setItem("maxScoreIndex", settingsIndex);
-    this.state.maxScoreIndex = settingsIndex;
+    if (settingsIndex !== this.state.maxScoreIndex) {
+      localStorage.setItem("maxScoreIndex", settingsIndex);
+      this.state.maxScoreIndex = settingsIndex;
+      this.state.currentStreak0OnReset = true;
+      this.state.loadWordOnReset = true;
+    }
+
     document.getElementById("max-streak-text").textContent = this.state.maxScoreObjects[this.state.maxScoreIndex].score;
 
     this.state.currentWordList = applySettings(this.state.settings, this.state.completeWordList);
     addValueToProbabilities(this.state.currentWordList, 1, "=");
     this.resetMainView();
-    // if clicked settings from correct/neutral state, need to load new word immediately without adding to score
 
     document.getElementById("main-view").style.display = "block";
     document.getElementById("options-view").style.display = "none";
@@ -1318,7 +1320,7 @@ class ConjugationApp {
       this.state.maxScoreObjects = [new maxScoreObject(0, removeIrrelevantSettingsMaxScore(this.state.settings))]; 
       localStorage.setItem("maxScoreObjects", JSON.stringify(this.state.maxScoreObjects));
     } else {
-      this.state.maxScoreIndex = localStorage.getItem("maxScoreIndex");
+      this.state.maxScoreIndex = parseInt(localStorage.getItem("maxScoreIndex"));
       this.state.settings = Object.assign(defaultSettings(), JSON.parse(localStorage.getItem("settings")));
       this.state.maxScoreObjects = JSON.parse(localStorage.getItem("maxScoreObjects"));
     }
@@ -1327,7 +1329,8 @@ class ConjugationApp {
     this.state.currentWord = loadNewWord(this.state.currentWordList);
     this.state.wordsRecentlySeen = [];
 
-    this.state.currentStreakReset = false;
+    this.state.currentStreak0OnReset = false;
+    this.state.loadWordOnReset = false;
 
     document.getElementById("max-streak-text").textContent = this.state.maxScoreObjects[this.state.maxScoreIndex].score;
   }
