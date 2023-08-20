@@ -2,8 +2,11 @@
 // would be less work to just wait x rounds and immeditely show what you missed, without updating any weights.
 "use strict";
 import {bind, isJapanese } from 'wanakana'
-import {optionRemoveFunctions, showFurigana, showEmojis, showStreak} from "./optionfunctions.js";
+import {optionRemoveFunctions, showFurigana, showEmojis, showStreak, showTranslation} from "./optionfunctions.js";
 import {wordData} from "./worddata.js";
+
+const nonConjugationSettings = [];
+document.getElementById("non-conjugation-settings").querySelectorAll(`input[type="checkbox"]`).forEach(input => nonConjugationSettings.push(input.getAttribute("name")))
 
 let isTouch = (('ontouchstart' in window) || (navigator.msMaxTouchPoints > 0));
 document.getElementById("press-any-key-text").textContent = isTouch ? "Tap to continue" : "Press Enter/Return to continue";
@@ -18,13 +21,13 @@ const defaultSettings = () => {
   return retObject;
 }
 
-function removeIrrelevantSettingsMaxScore(settings) {
-  let coolSettings = JSON.parse(JSON.stringify(settings));
+function removeNonConjugationSettings(settings) {
+  let prunedSettings = JSON.parse(JSON.stringify(settings));
   
-  delete coolSettings.furigana;
-  delete coolSettings.emoji;
-  delete coolSettings.streak;
-  return coolSettings;
+  nonConjugationSettings.forEach(s => {
+    delete prunedSettings[s];
+  })
+  return prunedSettings;
 }
 
 function wordTypeToDisplayText(type) {
@@ -85,8 +88,9 @@ function loadNewWord(wordList) {
 function updateCurrentWord(word) {
   document.getElementById("verb-box").style.background = "none";
   document.getElementById("verb-text").innerHTML = "<ruby>" + word.wordJSON.kanji + "</ruby>";
-  document.getElementById("definition").textContent = word.wordJSON.eng;
-  document.getElementById("verb-type").textContent = "";
+  document.getElementById("translation").textContent = word.wordJSON.eng;
+  // Set verb-type to a non-breaking space to preserve vertical height
+  document.getElementById("verb-type").textContent = "\u00A0";
   document.getElementById("conjugation-inquery-text").innerHTML = conjugationInqueryFormatting(word.conjugation);
 }
 
@@ -1067,6 +1071,7 @@ function applySettings(settings, completeWordList) {
   showFurigana(settings.furigana);
   showEmojis(settings.emoji);
   showStreak(settings.streak);
+  showTranslation(settings.translation)
 
   let currentWordList = createArrayOfArrays(completeWordList.length);
 
@@ -1275,7 +1280,7 @@ class ConjugationApp {
     let newMaxScoreSettings = {};
     for (let input of Array.from(inputs)) {
       this.state.settings[input.name] = input.checked;
-      if (input.offsetWidth > 0 && input.offsetHeight > 0 && input.name != "furigana" && input.name != "emoji" && input.name != "streak") {
+      if (input.offsetWidth > 0 && input.offsetHeight > 0 && !nonConjugationSettings.includes(input.name)) {
         newMaxScoreSettings[input.name] = input.checked;
       }
     }
@@ -1317,7 +1322,7 @@ class ConjugationApp {
       this.state.settings = defaultSettings();
       localStorage.setItem("settings", JSON.stringify(this.state.settings));
 
-      this.state.maxScoreObjects = [new maxScoreObject(0, removeIrrelevantSettingsMaxScore(this.state.settings))]; 
+      this.state.maxScoreObjects = [new maxScoreObject(0, removeNonConjugationSettings(this.state.settings))]; 
       localStorage.setItem("maxScoreObjects", JSON.stringify(this.state.maxScoreObjects));
     } else {
       this.state.maxScoreIndex = parseInt(localStorage.getItem("maxScoreIndex"));

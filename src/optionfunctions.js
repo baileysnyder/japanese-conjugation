@@ -114,3 +114,7 @@ export const showStreak = function(show) {
         }
     });
 }
+
+export const showTranslation = function(show) {
+    document.getElementById("translation").className = show ? "" : "display-none";
+}
