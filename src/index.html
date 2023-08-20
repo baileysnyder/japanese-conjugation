@@ -28,11 +28,8 @@
                     <div id="verb-container">
                         <div id="verb-box">
                             <p id="verb-text"></p>
-                            <br>
-                            <p id="definition"></p>
-                            <br>
+                            <p id="translation"></p>
                             <p id="verb-type"></p>
-                            <br>
                         </div>
                     </div>
                     <div id="conjugation-inquery-container">
@@ -60,9 +57,12 @@
             <div id="options-view">
                 <h2>Options</h2>
                 <form id="options-form">
-                    <p><input id="furigana-checkbox"type="checkbox" name="furigana"><label for="furigana-checkbox">Show furigana above kanji</label></p>
-                    <p><input id="emoji-checkbox" type="checkbox" name="emoji"><label for="emoji-checkbox">Show emojis above conjugation types</label></p>
-                    <p><input id="streak-checkbox" type="checkbox" name="streak"><label for="streak-checkbox">Show current/max streak</label></p>
+                    <div id="non-conjugation-settings">
+                        <p><input id="furigana-checkbox"type="checkbox" name="furigana"><label for="furigana-checkbox">Show furigana above kanji</label></p>
+                        <p><input id="translation-checkbox" type="checkbox" name="translation"><label for="translation-checkbox">Show English translations</label></p>
+                        <p><input id="emoji-checkbox" type="checkbox" name="emoji"><label for="emoji-checkbox">Show emojis above conjugation types</label></p>
+                        <p><input id="streak-checkbox" type="checkbox" name="streak"><label for="streak-checkbox">Show current/max streak</label></p>
+                    </div>
                     <hr>
                     <div id="verbs-h3-container">
                         <input id="verb-checkbox" type="checkbox" name="verb"><label for="verb-checkbox"><h3>Verbs</h3></label>
