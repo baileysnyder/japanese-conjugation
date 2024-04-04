@@ -1449,6 +1449,8 @@ class ConjugationApp {
 	}
 
 	resetMainView() {
+		applyNonConjugationSettings(this.state.settings);
+
 		document.getElementsByTagName("input")[0].disabled = false;
 		document.getElementsByTagName("input")[0].value = "";
 		document
@@ -1516,6 +1518,8 @@ class ConjugationApp {
 			}
 
 			inputElt.blur();
+			showFurigana(true);
+			showTranslation(true);
 			updateStatusBoxes(this.state.currentWord, inputValue);
 
 			// update probabilities before next word is chosen so don't choose same word
