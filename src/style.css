@@ -354,6 +354,10 @@ h2 {
 }
 
 .hide-furigana rt,
+.transparent {
+	opacity: 0;
+}
+
 .display-none,
 .hide-emojis .inquery-emoji {
 	display: none;

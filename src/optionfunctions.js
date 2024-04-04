@@ -126,7 +126,10 @@ export const showStreak = function (show) {
 };
 
 export const showTranslation = function (show) {
-	document.getElementById("translation").className = show
-		? ""
-		: "display-none";
+	const el = document.getElementById("translation");
+	if (show) {
+		el.classList.remove("transparent");
+	} else {
+		el.classList.add("transparent");
+	}
 };
