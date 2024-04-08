@@ -353,11 +353,11 @@ h2 {
 	margin-bottom: 0;
 }
 
-.hide-furigana rt,
 .transparent {
 	opacity: 0;
 }
 
+.hide-furigana rt,
 .display-none,
 .hide-emojis .inquery-emoji {
 	display: none;

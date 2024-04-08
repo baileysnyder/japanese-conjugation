@@ -1518,7 +1518,6 @@ class ConjugationApp {
 			}
 
 			inputElt.blur();
-			showFurigana(true);
 			showTranslation(true);
 			updateStatusBoxes(this.state.currentWord, inputValue);
 
