@@ -19,88 +19,87 @@ function isNotTense(word, s) {
 	return word.conjugation.tense != s;
 }
 
-// would be better to store inquery words as const in separate file
-// when an option is set to true, these filter functions will be used
-// input is a Word from main.js
-// create sub array with all verbs, then run affirmative, polite checks on sub array to avoid checking if verb twice
-export const optionRemoveFunctions = {
-	verb: function (x) {
-		return wordPartOfSpeech(x) != "v";
+// The input to these functions is a "Word" object defined in main.js.
+// If one of these filters is applied to an array of Words,
+// that type of Word will be removed from the array.
+export const questionRemoveFilters = {
+	verb: function (word) {
+		return wordPartOfSpeech(word) != "v";
 	},
 
 	verbs: {
-		verbpresent: function (x) {
-			return isNotTense(x, "Present");
+		verbpresent: function (word) {
+			return isNotTense(word, "Present");
 		},
-		verbpast: function (x) {
-			return isNotTense(x, "Past");
+		verbpast: function (word) {
+			return isNotTense(word, "Past");
 		},
-		verbte: function (x) {
-			return isNotTense(x, "て-form");
-		},
-
-		verbaffirmative: function (x) {
-			return x.conjugation.affirmative !== true;
-		},
-		verbnegative: function (x) {
-			return x.conjugation.affirmative !== false;
+		verbte: function (word) {
+			return isNotTense(word, "て-form");
 		},
 
-		verbplain: function (x) {
-			return x.conjugation.polite !== false;
+		verbaffirmative: function (word) {
+			return word.conjugation.affirmative !== true;
 		},
-		verbpolite: function (x) {
-			return x.conjugation.polite !== true;
+		verbnegative: function (word) {
+			return word.conjugation.affirmative !== false;
 		},
 
-		verbu: function (x) {
-			return x.wordJSON.type != "u";
+		verbplain: function (word) {
+			return word.conjugation.polite !== false;
 		},
-		verbru: function (x) {
-			return x.wordJSON.type != "ru";
+		verbpolite: function (word) {
+			return word.conjugation.polite !== true;
 		},
-		verbirregular: function (x) {
-			return x.wordJSON.type != "irv";
+
+		verbu: function (word) {
+			return word.wordJSON.type != "u";
+		},
+		verbru: function (word) {
+			return word.wordJSON.type != "ru";
+		},
+		verbirregular: function (word) {
+			return word.wordJSON.type != "irv";
 		},
 	},
 
-	adjective: function (x) {
-		return wordPartOfSpeech(x) != "a";
+	adjective: function (word) {
+		return wordPartOfSpeech(word) != "a";
 	},
 
 	adjectives: {
-		adjectivepresent: function (x) {
-			return isNotTense(x, "Present");
+		adjectivepresent: function (word) {
+			return isNotTense(word, "Present");
 		},
-		adjectivepast: function (x) {
-			return isNotTense(x, "Past");
+		adjectivepast: function (word) {
+			return isNotTense(word, "Past");
 		},
-		adjectiveadverb: function (x) {
-			return isNotTense(x, "Adverb");
-		},
-
-		adjectiveaffirmative: function (x) {
-			return x.conjugation.affirmative !== true;
-		},
-		adjectivenegative: function (x) {
-			return x.conjugation.affirmative !== false;
+		adjectiveadverb: function (word) {
+			return isNotTense(word, "Adverb");
 		},
 
-		adjectiveplain: function (x) {
-			return x.conjugation.polite !== false;
+		adjectiveaffirmative: function (word) {
+			return word.conjugation.affirmative !== true;
 		},
-		adjectivepolite: function (x) {
-			return x.conjugation.polite !== true;
+		adjectivenegative: function (word) {
+			return word.conjugation.affirmative !== false;
 		},
 
-		adjectivei: function (x) {
-			return x.wordJSON.type != "i";
+		adjectiveplain: function (word) {
+			return word.conjugation.polite !== false;
 		},
-		adjectivena: function (x) {
-			return x.wordJSON.type != "na";
+		adjectivepolite: function (word) {
+			return word.conjugation.polite !== true;
 		},
-		adjectiveirregular: function (x) {
-			return x.wordJSON.type != "ira";
+
+		adjectivei: function (word) {
+			return word.wordJSON.type != "i";
+		},
+		adjectivena: function (word) {
+			return word.wordJSON.type != "na";
+		},
+		adjectiveirregular: function (word) {
+			return word.wordJSON.type != "ira";
 		},
 	},
 };
@@ -125,8 +124,23 @@ export const showStreak = function (show) {
 	});
 };
 
-export const showTranslation = function (show) {
-	document.getElementById("translation").className = show
-		? ""
-		: "display-none";
+// The translation can be shown never, always, or only after answering.
+// If it's only after answering, we make it transparent before answering
+// so the app height doesn't change between question and answer.
+export const showTranslation = function (showInDom, makeTransparent = false) {
+	let el = document.getElementById("translation");
+
+	// Reset state
+	el.classList.remove("display-none");
+	el.classList.remove("transparent");
+
+	if (!showInDom) {
+		el.classList.add("display-none");
+		return;
+	}
+
+	if (makeTransparent) {
+		el.classList.add("transparent");
+		return;
+	}
 };
