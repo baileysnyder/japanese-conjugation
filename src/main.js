@@ -3,7 +3,7 @@
 "use strict";
 import { bind, isJapanese } from "wanakana";
 import {
-	optionRemoveFunctions,
+	questionRemoveFilters,
 	showFurigana,
 	showEmojis,
 	showStreak,
@@ -11,27 +11,43 @@ import {
 } from "./optionfunctions.js";
 import { wordData } from "./worddata.js";
 
-const nonConjugationSettings = [];
+let nonConjugationSettings = new Set();
 document
-	.getElementById("non-conjugation-settings")
-	.querySelectorAll(`input[type="checkbox"]`)
-	.forEach((input) => nonConjugationSettings.push(input.getAttribute("name")));
+	.querySelectorAll("#non-conjugation-settings input")
+	.forEach((input) => nonConjugationSettings.add(input.getAttribute("name")));
 
 let isTouch = "ontouchstart" in window || navigator.msMaxTouchPoints > 0;
 document.getElementById("press-any-key-text").textContent = isTouch
 	? "Tap to continue"
 	: "Press Enter/Return to continue";
 
+// Enum corresponding to "translationTiming" radio values in the html
+const TRANSLATION_TIMINGS = Object.freeze({
+	always: "always",
+	onlyAfterAnswering: "after",
+});
+
+// Stored in state.activeScreen
+const SCREENS = Object.freeze({
+	question: 0,
+	// Incorrect and correct answers are considered the same "results" screen
+	results: 1,
+	settings: 2,
+});
+
 const defaultSettings = () => {
 	let inputs = document
 		.getElementById("options-form")
 		.querySelectorAll('[type="checkbox"]');
-	let retObject = {};
+	let settings = {};
 	for (let x of Array.from(inputs)) {
-		retObject[x.name] = true;
+		settings[x.name] = true;
 	}
 
-	return retObject;
+	// Set input radio value
+	settings["translationTiming"] = TRANSLATION_TIMINGS.always;
+
+	return settings;
 };
 
 function removeNonConjugationSettings(settings) {
@@ -1115,8 +1131,8 @@ function optionsGroupCheckError(groupElement) {
 
 function verbAndAdjCheckError() {
 	let inputs = [
-		document.querySelectorAll('input[name="verb"]')[0],
-		document.querySelectorAll('input[name="adjective"]')[0],
+		document.querySelector('input[name="verb"]'),
+		document.querySelector('input[name="adjective"]'),
 	];
 	toggleDisplayNone(
 		document.getElementById("verb-options-container"),
@@ -1138,13 +1154,11 @@ function verbAndAdjCheckError() {
 
 // --public namespace addition--
 let inputsToSelectVerbPresAffPlain = [];
-const verbPresentInput = document.querySelectorAll(
-	'input[name="verbpresent"]'
-)[0];
-const verbAffirmativeInput = document.querySelectorAll(
+const verbPresentInput = document.querySelector('input[name="verbpresent"]');
+const verbAffirmativeInput = document.querySelector(
 	'input[name="verbaffirmative"]'
-)[0];
-const verbPlainInput = document.querySelectorAll('input[name="verbplain"]')[0];
+);
+const verbPlainInput = document.querySelector('input[name="verbplain"]');
 inputsToSelectVerbPresAffPlain.push(verbPresentInput);
 inputsToSelectVerbPresAffPlain.push(verbAffirmativeInput);
 inputsToSelectVerbPresAffPlain.push(verbPlainInput);
@@ -1158,7 +1172,7 @@ inputsToDeselectVerbPresAffPlain = inputsToDeselectVerbPresAffPlain.concat(
 inputsToDeselectVerbPresAffPlain = inputsToDeselectVerbPresAffPlain.concat(
 	Array.from(
 		document
-			.getElementById("verb-affirmative-polite-container")
+			.getElementById("verb-variations-container")
 			.getElementsByTagName("input")
 	).filter((e) => e != verbAffirmativeInput && e != verbPlainInput)
 );
@@ -1191,15 +1205,13 @@ function verbPresAffPlainCheckError() {
 
 // --public namespace addition--
 let inputsToSelectAdjPresAffPlain = [];
-const adjPresentInput = document.querySelectorAll(
+const adjPresentInput = document.querySelector(
 	'input[name="adjectivepresent"]'
-)[0];
-const adjAffirmativeInput = document.querySelectorAll(
+);
+const adjAffirmativeInput = document.querySelector(
 	'input[name="adjectiveaffirmative"]'
-)[0];
-const adjPlainInput = document.querySelectorAll(
-	'input[name="adjectiveplain"]'
-)[0];
+);
+const adjPlainInput = document.querySelector('input[name="adjectiveplain"]');
 inputsToSelectAdjPresAffPlain.push(adjPresentInput);
 inputsToSelectAdjPresAffPlain.push(adjAffirmativeInput);
 inputsToSelectAdjPresAffPlain.push(adjPlainInput);
@@ -1215,7 +1227,7 @@ inputsToDeselectAdjPresAffPlain = inputsToDeselectAdjPresAffPlain.concat(
 inputsToDeselectAdjPresAffPlain = inputsToDeselectAdjPresAffPlain.concat(
 	Array.from(
 		document
-			.getElementById("adjective-affirmative-polite-container")
+			.getElementById("adjective-variations-container")
 			.getElementsByTagName("input")
 	).filter((e) => e != adjAffirmativeInput && e != adjPlainInput)
 );
@@ -1230,11 +1242,9 @@ function adjPresAffPlainCheckError() {
 	let selected = checkInputsForError(inputsToSelectAdjPresAffPlain, true);
 	let unselected = checkInputsForError(inputsToDeselectAdjPresAffPlain, false);
 
-	let iAdjInput = document.querySelectorAll('input[name="adjectivei"]')[0];
-	let irrAdjInput = document.querySelectorAll(
-		'input[name="adjectiveirregular"]'
-	)[0];
-	let naAdjInput = document.querySelectorAll('input[name="adjectivena"]')[0];
+	let iAdjInput = document.querySelector('input[name="adjectivei"]');
+	let irrAdjInput = document.querySelector('input[name="adjectiveirregular"]');
+	let naAdjInput = document.querySelector('input[name="adjectivena"]');
 	if (
 		selected &&
 		unselected &&
@@ -1248,71 +1258,95 @@ function adjPresAffPlainCheckError() {
 		);
 		// element could be hidden because verb is unchecked, so check to enable back button
 		checkToEnableBackButton();
-	} else if (document.querySelectorAll('input[name="adjective"]')[0].checked) {
+	} else if (document.querySelector('input[name="adjective"]').checked) {
 		optionsGroupCheckError(optionsGroup);
 	}
 }
 
-function checkUsingAffirmativePolite(inputClassName, affPolContainerName) {
-	let usingAffirmativePolite = document.getElementsByClassName(inputClassName);
-	let toDisable = document.getElementById(affPolContainerName);
-	for (let input of Array.from(usingAffirmativePolite)) {
+// In this context the options Affirmative, Negative, Plain, and Polite
+// are considered "variations" on other conjugation types.
+// Not all types (like て for verbs, adverbs for adjectives) have variations.
+function showHideConjugationVariationOptions(
+	inputWithVariationsClass,
+	variationsContainerId
+) {
+	let inputsWithVariations = document.getElementsByClassName(
+		inputWithVariationsClass
+	);
+	let variationsContainer = document.getElementById(variationsContainerId);
+
+	for (let input of Array.from(inputsWithVariations)) {
 		if (input.checked) {
-			let optionGroups = toDisable.getElementsByClassName("options-group");
+			let optionGroups =
+				variationsContainer.getElementsByClassName("options-group");
 			for (let optionGroup of Array.from(optionGroups)) {
 				optionsGroupCheckError(optionGroup);
 			}
 
-			toggleDisplayNone(toDisable, false);
+			toggleDisplayNone(variationsContainer, false);
 			return;
 		}
 	}
-	toggleDisplayNone(toDisable, true);
+
+	// If no conjugations with variations were selected, hide the variation options.
+	toggleDisplayNone(variationsContainer, true);
 }
 
-function checkVerbsUsingAffirmativePolite() {
-	checkUsingAffirmativePolite(
-		"verb-uses-affirmative-polite",
-		"verb-affirmative-polite-container"
+function showHideVerbVariationOptions() {
+	showHideConjugationVariationOptions(
+		"verb-has-variations",
+		"verb-variations-container"
 	);
 }
 
-function checkAdjectivesUsingAffirmativePolite() {
-	checkUsingAffirmativePolite(
-		"adjective-uses-affirmative-polite",
-		"adjective-affirmative-polite-container"
+function showHideAdjectiveVariationOptions() {
+	showHideConjugationVariationOptions(
+		"adjective-has-variations",
+		"adjective-variations-container"
+	);
+}
+
+function showHideTranslationSubOptions() {
+	toggleDisplayNone(
+		document.getElementById("translation-sub-options"),
+		!document.getElementById("translation-checkbox").checked
 	);
 }
 
 function optionsMenuInit() {
 	let optionsGroups = document.getElementsByClassName("options-group");
 	for (let optionGroup of Array.from(optionsGroups)) {
+		// Note that this registers a listener for a click anywhere in the
+		// options-group element (not just the checkboxes).
 		optionGroup.addEventListener("click", onClickCheckboxCheckError);
 	}
 
-	let verbsUsingAffirmativePolite = document.getElementsByClassName(
-		"verb-uses-affirmative-polite"
+	let verbInputsWithVariations = document.getElementsByClassName(
+		"verb-has-variations"
 	);
-	for (let verb of Array.from(verbsUsingAffirmativePolite)) {
-		verb.addEventListener("click", checkVerbsUsingAffirmativePolite);
+	for (let input of Array.from(verbInputsWithVariations)) {
+		input.addEventListener("click", showHideVerbVariationOptions);
 	}
 
-	let adjectivesUsingAffirmativePolite = document.getElementsByClassName(
-		"adjective-uses-affirmative-polite"
+	let adjectiveInputsWithVariations = document.getElementsByClassName(
+		"adjective-has-variations"
 	);
-	for (let adj of Array.from(adjectivesUsingAffirmativePolite)) {
-		adj.addEventListener("click", checkAdjectivesUsingAffirmativePolite);
+	for (let input of Array.from(adjectiveInputsWithVariations)) {
+		input.addEventListener("click", showHideAdjectiveVariationOptions);
 	}
 
 	document
-		.querySelectorAll('input[name="verb"]')[0]
+		.getElementById("translation-checkbox")
+		.addEventListener("click", showHideTranslationSubOptions);
+
+	document
+		.getElementById("verbs-checkbox")
 		.addEventListener("click", verbAndAdjCheckError);
 	document
-		.querySelectorAll('input[name="adjective"]')[0]
+		.getElementById("adjectives-checkbox")
 		.addEventListener("click", verbAndAdjCheckError);
 
 	// top level errors
-	// call verbAndAdjCheckError from
 	let optionsView = document.getElementById("options-view");
 	optionsView.addEventListener("click", verbPresAffPlainCheckError);
 	optionsView.addEventListener("click", adjPresAffPlainCheckError);
@@ -1322,7 +1356,7 @@ function applyNonConjugationSettings(settings) {
 	showFurigana(settings.furigana);
 	showEmojis(settings.emoji);
 	showStreak(settings.streak);
-	showTranslation(settings.translation);
+	// "showTranslation" is dependent on the state, so we can't set it here
 }
 
 function applySettingsLoadWords(settings, completeWordList) {
@@ -1330,31 +1364,37 @@ function applySettingsLoadWords(settings, completeWordList) {
 
 	let currentWordList = createArrayOfArrays(completeWordList.length);
 
-	let verbRegex = /^verb.+/,
-		adjectiveRegex = /^adjective.+/;
+	const verbRegex = /^verb.+/;
 	if (settings.verb !== false) {
+		// Copy all of the verbs over
+		currentWordList[0] = [...completeWordList[0]];
+
 		let verbOptions = Object.keys(settings).filter((el) =>
 			verbRegex.test(el)
 		);
-		currentWordList[0] = [...completeWordList[0]];
+		// Filter out the verbs we don't want
 		for (let i = 0; i < verbOptions.length; i++) {
 			if (settings[verbOptions[i]] === false) {
 				currentWordList[0] = currentWordList[0].filter(
-					optionRemoveFunctions.verbs[verbOptions[i]]
+					questionRemoveFilters.verbs[verbOptions[i]]
 				);
 			}
 		}
 	}
 
+	const adjectiveRegex = /^adjective.+/;
 	if (settings.adjective !== false) {
+		// Copy all of the adjectives over
+		currentWordList[1] = [...completeWordList[1]];
+
 		let adjectiveOptions = Object.keys(settings).filter((el) =>
 			adjectiveRegex.test(el)
 		);
-		currentWordList[1] = [...completeWordList[1]];
+		// Filter out the adjectives we don't want
 		for (let i = 0; i < adjectiveOptions.length; i++) {
 			if (settings[adjectiveOptions[i]] === false) {
 				currentWordList[1] = currentWordList[1].filter(
-					optionRemoveFunctions.adjectives[adjectiveOptions[i]]
+					questionRemoveFilters.adjectives[adjectiveOptions[i]]
 				);
 			}
 		}
@@ -1390,13 +1430,6 @@ function findSettingCombination(maxScoreObjects, settings) {
 	return -1;
 }
 
-// state has currentWord, previousCorrect, settingsOpen, settings, completeWordList, currentWordList
-// settings has filters property which is an array of keys for filterFunctions to apply on completeWordList to get currentWordList
-// can change state by pressing enter on input field, or by opening / closing settings
-// if settings object does not change after settingsOpen changes to false, do not load new word. Else load new word but don't reset streak.
-// reset streak only if previousCorrect is false
-// if got incorrect and pressed enter, now previousCorrect is still false, but currentWord is different
-// add event listener when get wrong on body for enter
 class ConjugationApp {
 	constructor(words) {
 		let input = document.getElementsByTagName("input")[0];
@@ -1445,10 +1478,15 @@ class ConjugationApp {
 					.classList.remove(e.animationName);
 			});
 
+		document.addEventListener("keydown", this.onKeyDown.bind(this));
+		document.addEventListener("touchend", this.onTouchEnd.bind(this));
+
 		optionsMenuInit();
 	}
 
-	resetMainView() {
+	loadMainView() {
+		this.state.activeScreen = SCREENS.question;
+
 		document.getElementsByTagName("input")[0].disabled = false;
 		document.getElementsByTagName("input")[0].value = "";
 		document
@@ -1467,32 +1505,42 @@ class ConjugationApp {
 			this.state.currentWord = loadNewWord(this.state.currentWordList);
 			this.state.loadWordOnReset = false;
 		}
+
+		// Translation may need to be hidden during the question screen
+		showTranslation(
+			this.state.settings.translation,
+			this.state.settings.translationTiming ===
+				TRANSLATION_TIMINGS.onlyAfterAnswering
+		);
 	}
 
-	onResultsViewKeyDown(e) {
+	// Handle generic keydown events that aren't targeting a specific element
+	onKeyDown(e) {
 		let keyCode = e.keyCode ? e.keyCode : e.which;
-		if (keyCode == "13") {
-			document.removeEventListener("keydown", this.onResultsViewKeyDown);
-			document.removeEventListener("touchend", this.onResultsViewTouchEnd);
-			this.resetMainView();
+		if (this.state.activeScreen === SCREENS.results && keyCode == "13") {
+			this.loadMainView();
 		}
 	}
 
-	onResultsViewTouchEnd(e) {
-		if (e.target != document.getElementById("options-button")) {
-			document.removeEventListener("keydown", this.onResultsViewKeyDown);
-			document.removeEventListener("touchend", this.onResultsViewTouchEnd);
-			this.resetMainView();
+	// Handle generic touchend events that aren't targeting a specific element
+	onTouchEnd(e) {
+		if (
+			this.state.activeScreen === SCREENS.results &&
+			e.target != document.getElementById("options-button")
+		) {
+			this.loadMainView();
 		}
 	}
 
 	inputKeyPress(e) {
 		let keyCode = e.keyCode ? e.keyCode : e.which;
 		if (keyCode == "13") {
-			let inputElt = document.getElementsByTagName("input")[0];
+			this.state.activeScreen = SCREENS.results;
+
+			let inputEl = document.getElementsByTagName("input")[0];
 			e.stopPropagation();
 
-			let inputValue = inputElt.value;
+			let inputValue = inputEl.value;
 			const finalChar = inputValue[inputValue.length - 1];
 			switch (finalChar) {
 				// Set hanging n to ん
@@ -1515,8 +1563,10 @@ class ConjugationApp {
 					.classList.remove("tooltip-fade-animation");
 			}
 
-			inputElt.blur();
+			inputEl.blur();
 			updateStatusBoxes(this.state.currentWord, inputValue);
+			// If the translation was made transparent during the question, make it visible now
+			showTranslation(this.state.settings.translation, false);
 
 			// update probabilities before next word is chosen so don't choose same word
 			let inputWasCorrect =
@@ -1542,28 +1592,28 @@ class ConjugationApp {
 			document.getElementsByTagName("input")[0].disabled = true;
 			document.getElementById("press-any-key-text").style.display =
 				"table-cell";
-			document.addEventListener(
-				"keydown",
-				this.onResultsViewKeyDown.bind(this)
-			);
-			document.addEventListener(
-				"touchend",
-				this.onResultsViewTouchEnd.bind(this)
-			);
 
-			inputElt.value = "";
+			inputEl.value = "";
 		}
 	}
 
 	settingsButtonClicked(e) {
-		document.removeEventListener("keydown", this.onResultsViewKeyDown);
-		document.removeEventListener("touchend", this.onResultsViewTouchEnd);
+		this.state.activeScreen = SCREENS.settings;
 
-		let inputs = document
-			.getElementById("options-form")
-			.querySelectorAll('[type="checkbox"]');
-		for (let input of Array.from(inputs)) {
+		let checkboxInputs = document.querySelectorAll(
+			`#options-form input[type="checkbox"]`
+		);
+		for (let input of Array.from(checkboxInputs)) {
 			input.checked = this.state.settings[input.name];
+		}
+
+		switch (this.state.settings.translationTiming) {
+			case TRANSLATION_TIMINGS.always:
+				document.getElementById("translation-always-radio").checked = true;
+				break;
+			case TRANSLATION_TIMINGS.onlyAfterAnswering:
+				document.getElementById("translation-after-radio").checked = true;
+				break;
 		}
 
 		let optionsGroups = document.getElementsByClassName("options-group");
@@ -1571,32 +1621,40 @@ class ConjugationApp {
 			optionsGroupCheckError(group);
 		}
 
-		checkVerbsUsingAffirmativePolite();
-		checkAdjectivesUsingAffirmativePolite();
+		showHideVerbVariationOptions();
+		showHideAdjectiveVariationOptions();
+		showHideTranslationSubOptions();
+
 		verbAndAdjCheckError();
 
 		document.getElementById("main-view").style.display = "none";
 		document.getElementById("options-view").style.display = "block";
-		document.getElementById("donation-seciton").style.display = "block";
+		document.getElementById("donation-section").style.display = "block";
 	}
 
 	backButtonClicked(e) {
 		e.preventDefault();
 
-		let inputs = document
-			.getElementById("options-form")
-			.querySelectorAll('[type="checkbox"]');
+		let checkboxInputs = document.querySelectorAll(
+			'#options-form input[type="checkbox"]'
+		);
 		let newMaxScoreSettings = {};
-		for (let input of Array.from(inputs)) {
+		for (let input of Array.from(checkboxInputs)) {
 			this.state.settings[input.name] = input.checked;
 			if (
 				input.offsetWidth > 0 &&
 				input.offsetHeight > 0 &&
-				!nonConjugationSettings.includes(input.name)
+				!nonConjugationSettings.has(input.name)
 			) {
 				newMaxScoreSettings[input.name] = input.checked;
 			}
 		}
+
+		// Set the one input radio setting
+		this.state.settings.translationTiming =
+			document.querySelector(`input[name="translationTiming"]:checked`)
+				?.value ?? TRANSLATION_TIMINGS.always;
+
 		localStorage.setItem("settings", JSON.stringify(this.state.settings));
 
 		let settingsIndex = findSettingCombination(
@@ -1637,11 +1695,11 @@ class ConjugationApp {
 		document.getElementById("max-streak-text").textContent =
 			this.state.maxScoreObjects[this.state.maxScoreIndex].score;
 
-		this.resetMainView();
+		this.loadMainView();
 
 		document.getElementById("main-view").style.display = "block";
 		document.getElementById("options-view").style.display = "none";
-		document.getElementById("donation-seciton").style.display = "none";
+		document.getElementById("donation-section").style.display = "none";
 	}
 
 	initState(words) {
@@ -1690,8 +1748,11 @@ class ConjugationApp {
 
 		document.getElementById("max-streak-text").textContent =
 			this.state.maxScoreObjects[this.state.maxScoreIndex].score;
+
+		this.loadMainView();
 	}
 }
 
 getWords();
+// Keeping the top container hidden at the beginning prevents 1 frame of malformed UI being shown
 toggleDisplayNone(document.getElementById("toppest-container"), false);

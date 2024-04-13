@@ -58,14 +58,20 @@
                 <h2>Options</h2>
                 <form id="options-form">
                     <div id="non-conjugation-settings">
-                        <p><input id="furigana-checkbox"type="checkbox" name="furigana"><label for="furigana-checkbox">Show furigana above kanji</label></p>
-                        <p><input id="translation-checkbox" type="checkbox" name="translation"><label for="translation-checkbox">Show English translations</label></p>
-                        <p><input id="emoji-checkbox" type="checkbox" name="emoji"><label for="emoji-checkbox">Show emojis above conjugation types</label></p>
-                        <p><input id="streak-checkbox" type="checkbox" name="streak"><label for="streak-checkbox">Show current/max streak</label></p>
+                        <div class="option-row"><input id="furigana-checkbox"type="checkbox" name="furigana"><label for="furigana-checkbox">Show furigana above kanji</label></div>
+                        <div class="option-row">
+                            <div class="sub-option-row"><input id="translation-checkbox" type="checkbox" name="translation"><label for="translation-checkbox">Show English translations</label></div>
+                            <div id="translation-sub-options" class="option-row options-indent sub-options">
+                                <div class="sub-option-row"><input id="translation-always-radio" type="radio" name="translationTiming" value="always"><label for="translation-always-radio">always</label></div>
+                                <div class="sub-option-row"><input id="translation-after-radio" type="radio" name="translationTiming" value="after"><label for="translation-after-radio">only after answering</label></div>
+                            </div>
+                        </div>
+                        <div class="option-row"><input id="emoji-checkbox" type="checkbox" name="emoji"><label for="emoji-checkbox">Show emojis above conjugation types</label></div>
+                        <div class="option-row"><input id="streak-checkbox" type="checkbox" name="streak"><label for="streak-checkbox">Show current/max streak</label></div>
                     </div>
                     <hr>
                     <div id="verbs-h3-container">
-                        <input id="verb-checkbox" type="checkbox" name="verb"><label for="verb-checkbox"><h3>Verbs</h3></label>
+                        <input id="verbs-checkbox" type="checkbox" name="verb"><label for="verbs-checkbox"><h3>Verbs</h3></label>
                         <span id="top-must-choose" class="must-choose-one-text display-none">*Must choose at least 1 option from this category</span>
                     </div>
                     <div class="options-indent" id="verb-options-container">
@@ -80,13 +86,13 @@
                         <hr>
                         <table style="width:100%" class="options-group" id="verb-tense-group">
                             <tr>
-                                <td><input id="verbpresent-checkbox" type="checkbox" name="verbpresent" class="verb-uses-affirmative-polite"><label for="verbpresent-checkbox">Present tense</label></td>
+                                <td><input id="verbpresent-checkbox" type="checkbox" name="verbpresent" class="verb-has-variations"><label for="verbpresent-checkbox">Present tense</label></td>
                                 <td rowspan="3"class="must-choose-one-text display-none">*Must choose at least 1 option from this category</td>
                             </tr>
-                            <tr><td><input id="verbpast-checkbox" type="checkbox" name="verbpast" class="verb-uses-affirmative-polite"><label for="verbpast-checkbox">Past tense</label></td></tr>
+                            <tr><td><input id="verbpast-checkbox" type="checkbox" name="verbpast" class="verb-has-variations"><label for="verbpast-checkbox">Past tense</label></td></tr>
                             <tr><td><input id="verbte-checkbox" type="checkbox" name="verbte"><label for="verbte-checkbox">て-form</label></td></tr>
                         </table>
-                        <div id="verb-affirmative-polite-container">
+                        <div id="verb-variations-container">
                             <hr>
                             <table style="width:100%" class="options-group">
                                 <tr>
@@ -120,13 +126,13 @@
                         <hr>
                         <table style="width:100%" class="options-group" id="adjective-tense-group">
                             <tr>
-                                <td><input id="adjectivepresent-checkbox" type="checkbox" name="adjectivepresent" class="adjective-uses-affirmative-polite"><label for="adjectivepresent-checkbox">Present tense</label></td>
+                                <td><input id="adjectivepresent-checkbox" type="checkbox" name="adjectivepresent" class="adjective-has-variations"><label for="adjectivepresent-checkbox">Present tense</label></td>
                                 <td rowspan="3"class="must-choose-one-text display-none">*Must choose at least 1 option from this category</td>
                             </tr>
-                            <tr><td><input id="adjectivepast-checkbox" type="checkbox" name="adjectivepast" class="adjective-uses-affirmative-polite"><label for="adjectivepast-checkbox">Past tense</label></td></tr>
+                            <tr><td><input id="adjectivepast-checkbox" type="checkbox" name="adjectivepast" class="adjective-has-variations"><label for="adjectivepast-checkbox">Past tense</label></td></tr>
                             <tr><td><input id="adjectiveadverb-checkbox" type="checkbox" name="adjectiveadverb"><label for="adjectiveadverb-checkbox">Adverb</td></tr>
                         </table>
-                        <div id="adjective-affirmative-polite-container">
+                        <div id="adjective-variations-container">
                             <hr>
                             <table style="width:100%" class="options-group">
                                 <tr>
@@ -151,7 +157,7 @@
                 </form>
             </div>
         </div>
-        <div id="donation-seciton">
+        <div id="donation-section">
             <p class="footer-text">This app's <a href="https://github.com/baileysnyder/japanese-conjugation" target="_blank">source code</a> is available to use under the GPL-3.0 license.</p>
             <p class="footer-text">If you've found this app useful and would like to help support it please consider donating!</p>
             <form action="https://www.paypal.com/donate" method="post" target="_top">

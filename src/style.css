@@ -26,6 +26,10 @@ a {
 	color: #ffc439;
 }
 
+input {
+	accent-color: #6e6e6e;
+}
+
 .streak p {
 	margin: 0;
 	margin-bottom: 0;
@@ -306,9 +310,12 @@ h2 {
 	color: var(--whiteTextColor);
 }
 
-#options-form p {
-	text-align: left;
-	margin: 0.18rem;
+#options-form .option-row {
+	margin-bottom: 0.18rem;
+}
+
+#options-form .sub-option-row {
+	margin-bottom: 0.09rem;
 }
 
 #top-must-choose {
@@ -353,6 +360,10 @@ h2 {
 	margin-bottom: 0;
 }
 
+.transparent {
+	opacity: 0;
+}
+
 .hide-furigana rt,
 .display-none,
 .hide-emojis .inquery-emoji {
@@ -370,11 +381,6 @@ hr {
 	margin-bottom: 0.45rem;
 }
 
-#options-form p {
-	margin-left: 0;
-	margin-right: 0;
-}
-
 .footer-text {
 	color: gray;
 	font-size: 0.61rem;
@@ -382,7 +388,7 @@ hr {
 	margin-top: 0.3rem;
 }
 
-#donation-seciton {
+#donation-section {
 	margin: 0.6rem;
 	text-align: center;
 	display: none;
