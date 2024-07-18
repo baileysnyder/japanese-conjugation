@@ -111,7 +111,22 @@ input {
 #verb-text {
 	font-size: 2.2rem;
 	margin-top: 0;
-	margin-bottom: -0.5rem;
+	margin-bottom: 0.25rem;
+
+	display: flex;
+	line-height: 1;
+	align-items: flex-end;
+	justify-content: center;
+}
+
+ruby {
+	display: inline-flex;
+	flex-direction: column-reverse;
+}
+
+span.rt {
+	line-height: 1;
+	font-size: 0.5em;
 }
 
 #translation {
@@ -364,7 +379,7 @@ h2 {
 	opacity: 0;
 }
 
-.hide-furigana rt,
+.hide-furigana .rt,
 .display-none,
 .hide-emojis .inquery-emoji {
 	display: none;

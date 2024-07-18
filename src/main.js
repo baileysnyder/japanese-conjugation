@@ -121,8 +121,12 @@ function loadNewWord(wordList) {
 
 function updateCurrentWord(word) {
 	document.getElementById("verb-box").style.background = "none";
-	document.getElementById("verb-text").innerHTML =
-		"<ruby>" + word.wordJSON.kanji + "</ruby>";
+	// The <rt> element had different padding on different browsers.
+	// Rather than attacking it with CSS, just replace it with a span we have control over.
+	const verbHtml = word.wordJSON.kanji
+		.replaceAll("<rt>", '<span class="rt">')
+		.replaceAll("</rt>", "</span>");
+	document.getElementById("verb-text").innerHTML = verbHtml;
 	document.getElementById("translation").textContent = word.wordJSON.eng;
 	// Set verb-type to a non-breaking space to preserve vertical height
 	document.getElementById("verb-type").textContent = "\u00A0";
@@ -670,12 +674,14 @@ let conjugationFunctions = {
 	},
 };
 
-function convertFuriganaToKanji(word) {
-	return word.replace(/<ruby>|<\/ruby>|<rt>.*?<\/rt>/g, "");
+function toKanjiPlusHiragana(wordHtml) {
+	// "<rt>.*?<\/rt>" ensures if there are multiple <rt> tags, they are removed one by one instead of as a huge block
+	return wordHtml.replace(/<ruby>|<\/ruby>|<rt>.*?<\/rt>/g, "");
 }
 
-function convertFuriganaToHiragana(word) {
-	return word.replace(/<ruby>|<\/ruby>|.?<rt>|<\/rt>/g, "");
+function toHiragana(wordHtml) {
+	// ".<rt>" relies on there being exactly one kanji character before each <rt> furigana element
+	return wordHtml.replace(/<ruby>|<\/ruby>|.<rt>|<\/rt>/g, "");
 }
 
 function conjFuncIndexToName(index, wordPartOfSpeech) {
@@ -705,8 +711,8 @@ function getAllConjugations(wordJSON) {
 		keys = Object.keys(conjFunctions);
 	}
 
-	let hiragana = convertFuriganaToHiragana(wordJSON.kanji);
-	let kanji = convertFuriganaToKanji(wordJSON.kanji);
+	let hiragana = toHiragana(wordJSON.kanji);
+	let kanji = toKanjiPlusHiragana(wordJSON.kanji);
 
 	let hiraganaConj, kanjiConj;
 	// Loop through all 4 permutations of affirmative/negative and polite/plain
@@ -856,13 +862,17 @@ function normalizeProbabilities(currentWords) {
 	}
 }
 
-// Sets all of the probabilities to the same value
-function equalizeProbabilities(currentWords) {
+function setAllProbabilitiesToValue(currentWords, value) {
 	for (let i = 0; i < currentWords.length; i++) {
 		for (let j = 0; j < currentWords[i].length; j++) {
-			currentWords[i][j].probability = 1;
+			currentWords[i][j].probability = value;
 		}
 	}
+}
+
+// Sets all of the probabilities to the same normalized value
+function equalizeProbabilities(currentWords) {
+	setAllProbabilitiesToValue(currentWords, 1);
 
 	// Now that all of the probabilities are equal,
 	// normalize them so together they all add up to 1.
@@ -880,6 +890,10 @@ function updateProbabilites(
 	// If the number of current verb + adjective conjugations is less than roundsToWait + 1,
 	// the pool of conjugations is too small for our wordsRecentlySeenQueue to work.
 	if (currentWords[0].length + currentWords[1].length < roundsToWait + 1) {
+		// Set all probabilities except the current word to be equal to avoid getting the same question twice
+		setAllProbabilitiesToValue(currentWords, 1);
+		currentWord.probability = 0;
+		normalizeProbabilities(currentWords);
 		return;
 	}
 
