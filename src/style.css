@@ -375,6 +375,7 @@ h2 {
 	margin-bottom: 0;
 }
 
+.transparent-furigana .rt,
 .transparent {
 	opacity: 0;
 }
