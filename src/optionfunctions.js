@@ -104,10 +104,6 @@ export const questionRemoveFilters = {
 	},
 };
 
-export const showFurigana = function (show) {
-	document.getElementById("verb-text").className = show ? "" : "hide-furigana";
-};
-
 export const showEmojis = function (show) {
 	document.getElementById("conjugation-inquery-text").className = show
 		? ""
@@ -124,23 +120,50 @@ export const showStreak = function (show) {
 	});
 };
 
-// The translation can be shown never, always, or only after answering.
-// If it's only after answering, we make it transparent before answering
-// so the app height doesn't change between question and answer.
-export const showTranslation = function (showInDom, makeTransparent = false) {
-	let el = document.getElementById("translation");
+// Can be shown never, always, or only after answering.
+export const showFurigana = function (showInDom, makeTransparent = false) {
+	const el = document.getElementById("verb-text");
+	setDisplayAndTransparency(
+		el,
+		showInDom,
+		"hide-furigana",
+		makeTransparent,
+		"transparent-furigana"
+	);
+};
 
+// Can be shown never, always, or only after answering.
+export const showTranslation = function (showInDom, makeTransparent = false) {
+	const el = document.getElementById("translation");
+	setDisplayAndTransparency(
+		el,
+		showInDom,
+		"display-none",
+		makeTransparent,
+		"transparent"
+	);
+};
+
+// removeClass should lead to display:none
+// transparentClass should lead to something like opacity: 0 to keep height when hidden
+function setDisplayAndTransparency(
+	element,
+	showInDom,
+	removeClass,
+	makeTransparent,
+	transparentClass
+) {
 	// Reset state
-	el.classList.remove("display-none");
-	el.classList.remove("transparent");
+	element.classList.remove(removeClass);
+	element.classList.remove(transparentClass);
 
 	if (!showInDom) {
-		el.classList.add("display-none");
+		element.classList.add(removeClass);
 		return;
 	}
 
 	if (makeTransparent) {
-		el.classList.add("transparent");
+		element.classList.add(transparentClass);
 		return;
 	}
-};
+}

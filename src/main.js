@@ -21,8 +21,8 @@ document.getElementById("press-any-key-text").textContent = isTouch
 	? "Tap to continue"
 	: "Press Enter/Return to continue";
 
-// Enum corresponding to "translationTiming" radio values in the html
-const TRANSLATION_TIMINGS = Object.freeze({
+// Enum for radio options that conditionally show/hide UI elements
+const CONDITIONAL_UI_TIMINGS = Object.freeze({
 	always: "always",
 	onlyAfterAnswering: "after",
 });
@@ -44,8 +44,9 @@ const defaultSettings = () => {
 		settings[x.name] = true;
 	}
 
-	// Set input radio value
-	settings["translationTiming"] = TRANSLATION_TIMINGS.always;
+	// Set input radio values
+	settings["translationTiming"] = CONDITIONAL_UI_TIMINGS.always;
+	settings["furiganaTiming"] = CONDITIONAL_UI_TIMINGS.always;
 
 	return settings;
 };
@@ -121,8 +122,12 @@ function loadNewWord(wordList) {
 
 function updateCurrentWord(word) {
 	document.getElementById("verb-box").style.background = "none";
-	document.getElementById("verb-text").innerHTML =
-		"<ruby>" + word.wordJSON.kanji + "</ruby>";
+	// The <rt> element had different padding on different browsers.
+	// Rather than attacking it with CSS, just replace it with a span we have control over.
+	const verbHtml = word.wordJSON.kanji
+		.replaceAll("<rt>", '<span class="rt">')
+		.replaceAll("</rt>", "</span>");
+	document.getElementById("verb-text").innerHTML = verbHtml;
 	document.getElementById("translation").textContent = word.wordJSON.eng;
 	// Set verb-type to a non-breaking space to preserve vertical height
 	document.getElementById("verb-type").textContent = "\u00A0";
@@ -670,12 +675,14 @@ let conjugationFunctions = {
 	},
 };
 
-function convertFuriganaToKanji(word) {
-	return word.replace(/<ruby>|<\/ruby>|<rt>.*?<\/rt>/g, "");
+function toKanjiPlusHiragana(wordHtml) {
+	// "<rt>.*?<\/rt>" ensures if there are multiple <rt> tags, they are removed one by one instead of as a huge block
+	return wordHtml.replace(/<ruby>|<\/ruby>|<rt>.*?<\/rt>/g, "");
 }
 
-function convertFuriganaToHiragana(word) {
-	return word.replace(/<ruby>|<\/ruby>|.?<rt>|<\/rt>/g, "");
+function toHiragana(wordHtml) {
+	// ".<rt>" relies on there being exactly one kanji character before each <rt> furigana element
+	return wordHtml.replace(/<ruby>|<\/ruby>|.<rt>|<\/rt>/g, "");
 }
 
 function conjFuncIndexToName(index, wordPartOfSpeech) {
@@ -705,8 +712,8 @@ function getAllConjugations(wordJSON) {
 		keys = Object.keys(conjFunctions);
 	}
 
-	let hiragana = convertFuriganaToHiragana(wordJSON.kanji);
-	let kanji = convertFuriganaToKanji(wordJSON.kanji);
+	let hiragana = toHiragana(wordJSON.kanji);
+	let kanji = toKanjiPlusHiragana(wordJSON.kanji);
 
 	let hiraganaConj, kanjiConj;
 	// Loop through all 4 permutations of affirmative/negative and polite/plain
@@ -856,13 +863,17 @@ function normalizeProbabilities(currentWords) {
 	}
 }
 
-// Sets all of the probabilities to the same value
-function equalizeProbabilities(currentWords) {
+function setAllProbabilitiesToValue(currentWords, value) {
 	for (let i = 0; i < currentWords.length; i++) {
 		for (let j = 0; j < currentWords[i].length; j++) {
-			currentWords[i][j].probability = 1;
+			currentWords[i][j].probability = value;
 		}
 	}
+}
+
+// Sets all of the probabilities to the same normalized value
+function equalizeProbabilities(currentWords) {
+	setAllProbabilitiesToValue(currentWords, 1);
 
 	// Now that all of the probabilities are equal,
 	// normalize them so together they all add up to 1.
@@ -880,6 +891,10 @@ function updateProbabilites(
 	// If the number of current verb + adjective conjugations is less than roundsToWait + 1,
 	// the pool of conjugations is too small for our wordsRecentlySeenQueue to work.
 	if (currentWords[0].length + currentWords[1].length < roundsToWait + 1) {
+		// Set all probabilities except the current word to be equal to avoid getting the same question twice
+		setAllProbabilitiesToValue(currentWords, 1);
+		currentWord.probability = 0;
+		normalizeProbabilities(currentWords);
 		return;
 	}
 
@@ -1306,6 +1321,13 @@ function showHideAdjectiveVariationOptions() {
 	);
 }
 
+function showHideFuriganaSubOptions() {
+	toggleDisplayNone(
+		document.getElementById("furigana-sub-options"),
+		!document.getElementById("furigana-checkbox").checked
+	);
+}
+
 function showHideTranslationSubOptions() {
 	toggleDisplayNone(
 		document.getElementById("translation-sub-options"),
@@ -1336,6 +1358,9 @@ function optionsMenuInit() {
 	}
 
 	document
+		.getElementById("furigana-checkbox")
+		.addEventListener("click", showHideFuriganaSubOptions);
+	document
 		.getElementById("translation-checkbox")
 		.addEventListener("click", showHideTranslationSubOptions);
 
@@ -1353,10 +1378,9 @@ function optionsMenuInit() {
 }
 
 function applyNonConjugationSettings(settings) {
-	showFurigana(settings.furigana);
 	showEmojis(settings.emoji);
 	showStreak(settings.streak);
-	// "showTranslation" is dependent on the state, so we can't set it here
+	// showTranslation and showFurigana are dependent on the state, so we can't set them here
 }
 
 function applySettingsLoadWords(settings, completeWordList) {
@@ -1506,11 +1530,16 @@ class ConjugationApp {
 			this.state.loadWordOnReset = false;
 		}
 
-		// Translation may need to be hidden during the question screen
+		// Furigana and translation may need to be hidden during the question screen
+		showFurigana(
+			this.state.settings.furigana,
+			this.state.settings.furiganaTiming ===
+				CONDITIONAL_UI_TIMINGS.onlyAfterAnswering
+		);
 		showTranslation(
 			this.state.settings.translation,
 			this.state.settings.translationTiming ===
-				TRANSLATION_TIMINGS.onlyAfterAnswering
+				CONDITIONAL_UI_TIMINGS.onlyAfterAnswering
 		);
 	}
 
@@ -1565,7 +1594,8 @@ class ConjugationApp {
 
 			inputEl.blur();
 			updateStatusBoxes(this.state.currentWord, inputValue);
-			// If the translation was made transparent during the question, make it visible now
+			// If the furigana or translation were made transparent during the question, make them visible now
+			showFurigana(this.state.settings.furigana, false);
 			showTranslation(this.state.settings.translation, false);
 
 			// update probabilities before next word is chosen so don't choose same word
@@ -1607,13 +1637,32 @@ class ConjugationApp {
 			input.checked = this.state.settings[input.name];
 		}
 
-		switch (this.state.settings.translationTiming) {
-			case TRANSLATION_TIMINGS.always:
-				document.getElementById("translation-always-radio").checked = true;
-				break;
-			case TRANSLATION_TIMINGS.onlyAfterAnswering:
-				document.getElementById("translation-after-radio").checked = true;
-				break;
+		selectConditionalUiRadio(
+			this.state.settings.furiganaTiming,
+			"furigana-always-radio",
+			"furigana-after-radio"
+		);
+		selectConditionalUiRadio(
+			this.state.settings.translationTiming,
+			"translation-always-radio",
+			"translation-after-radio"
+		);
+
+		function selectConditionalUiRadio(
+			radioValue,
+			alwaysRadioId,
+			onlyAfterAnsweringRadioId
+		) {
+			switch (radioValue) {
+				case CONDITIONAL_UI_TIMINGS.always:
+					document.getElementById(alwaysRadioId).checked = true;
+					break;
+				case CONDITIONAL_UI_TIMINGS.onlyAfterAnswering:
+					document.getElementById(
+						onlyAfterAnsweringRadioId
+					).checked = true;
+					break;
+			}
 		}
 
 		let optionsGroups = document.getElementsByClassName("options-group");
@@ -1623,6 +1672,7 @@ class ConjugationApp {
 
 		showHideVerbVariationOptions();
 		showHideAdjectiveVariationOptions();
+		showHideFuriganaSubOptions();
 		showHideTranslationSubOptions();
 
 		verbAndAdjCheckError();
@@ -1650,10 +1700,18 @@ class ConjugationApp {
 			}
 		}
 
-		// Set the one input radio setting
+		this.state.settings.furiganaTiming =
+			getConditionalUiSetting("furiganaTiming");
 		this.state.settings.translationTiming =
-			document.querySelector(`input[name="translationTiming"]:checked`)
-				?.value ?? TRANSLATION_TIMINGS.always;
+			getConditionalUiSetting("translationTiming");
+
+		// Default to "always"
+		function getConditionalUiSetting(radioName) {
+			return (
+				document.querySelector(`input[name="${radioName}"]:checked`)
+					?.value ?? CONDITIONAL_UI_TIMINGS.always
+			);
+		}
 
 		localStorage.setItem("settings", JSON.stringify(this.state.settings));
 

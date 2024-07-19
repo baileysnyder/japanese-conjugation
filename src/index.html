@@ -58,7 +58,13 @@
                 <h2>Options</h2>
                 <form id="options-form">
                     <div id="non-conjugation-settings">
-                        <div class="option-row"><input id="furigana-checkbox"type="checkbox" name="furigana"><label for="furigana-checkbox">Show furigana above kanji</label></div>
+                        <div class="option-row">
+                            <div class="sub-option-row"><input id="furigana-checkbox" type="checkbox" name="furigana"><label for="furigana-checkbox">Show furigana above kanji</label></div>
+                            <div id="furigana-sub-options" class="option-row options-indent sub-options">
+                                <div class="sub-option-row"><input id="furigana-always-radio" type="radio" name="furiganaTiming" value="always"><label for="furigana-always-radio">always</label></div>
+                                <div class="sub-option-row"><input id="furigana-after-radio" type="radio" name="furiganaTiming" value="after"><label for="furigana-after-radio">only after answering</label></div>
+                            </div>
+                        </div>
                         <div class="option-row">
                             <div class="sub-option-row"><input id="translation-checkbox" type="checkbox" name="translation"><label for="translation-checkbox">Show English translations</label></div>
                             <div id="translation-sub-options" class="option-row options-indent sub-options">
