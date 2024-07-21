@@ -959,6 +959,33 @@ function updateProbabilites(
 		return;
 	}
 
+	// Lower probability of running into words in the same group
+	if (currentWord.wordJSON.group) {
+		const currentConjugation = currentWord.conjugation;
+		const group = currentWord.wordJSON.group;
+
+		currentWords[
+			getPartOfSpeech(currentWord.wordJSON) === PARTS_OF_SPEECH.verb ? 0 : 1
+		]
+			.filter((word) => {
+				const conjugation = word.conjugation;
+				// Only alter probabilities of the exact same conjugation for other words in the group
+				return (
+					word.wordJSON.group === group &&
+					word !== currentWord &&
+					conjugation.type === currentConjugation.type &&
+					conjugation.affirmative === currentConjugation.affirmative &&
+					conjugation.polite === currentConjugation.polite
+				);
+			})
+			.forEach((word) => {
+				// Have to be careful with lowering this too much, because it can affect findMinProb for other conjugations.
+				// Note that this is happening whether currentWordWasCorrect is true or false,
+				// so if someone got currentWord wrong many times it would tank the probabilities in this forEach over time.
+				word.probability /= 4;
+			});
+	}
+
 	// We wait "roundsToWait" rounds to set the probability of questions.
 	// This allows us to have a few rounds immediately after a question where it's guaranteed to not appear again,
 	// followed by the ability to set a high probability for the question to show up immediately after that waiting period (if the answer was incorrect).
