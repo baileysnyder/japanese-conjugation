@@ -337,14 +337,14 @@ h2 {
 	max-width: 70%;
 }
 
-.must-choose-one-text {
+.settings-error-text {
 	float: right;
 	color: rgb(236, 51, 51);
 	text-align: right;
 	font-size: 0.6rem;
 }
 
-#options-form td:not(.must-choose-one-text) {
+#options-form td:not(.settings-error-text) {
 	width: 35%;
 }
 
