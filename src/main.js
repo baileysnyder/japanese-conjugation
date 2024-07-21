@@ -3,29 +3,28 @@
 "use strict";
 import { bind, isJapanese } from "wanakana";
 import {
-	questionRemoveFilters,
+	CONDITIONAL_UI_TIMINGS,
+	getDefaultSettings,
+	getVisibleConjugationSettings,
+	removeNonConjugationSettings,
 	showFurigana,
-	showEmojis,
-	showStreak,
 	showTranslation,
-} from "./optionfunctions.js";
-import { wordData } from "./worddata.js";
+	findMaxScoreIndex,
+	applyAllSettingsFilterWords,
+	applyNonConjugationSettings,
+	optionsMenuInit,
+	selectCheckboxesInUi,
+	showHideOptionsAndCheckErrors,
+	insertSettingsFromUi,
+} from "./settingManagement.js";
+import { wordData } from "./wordData.js";
+import { CONJUGATION_TYPES, PARTS_OF_SPEECH } from "./wordEnums.js";
+import { toggleDisplayNone, createArrayOfArrays } from "./utils.js";
 
-let nonConjugationSettings = new Set();
-document
-	.querySelectorAll("#non-conjugation-settings input")
-	.forEach((input) => nonConjugationSettings.add(input.getAttribute("name")));
-
-let isTouch = "ontouchstart" in window || navigator.msMaxTouchPoints > 0;
+const isTouch = "ontouchstart" in window || navigator.msMaxTouchPoints > 0;
 document.getElementById("press-any-key-text").textContent = isTouch
 	? "Tap to continue"
 	: "Press Enter/Return to continue";
-
-// Enum for radio options that conditionally show/hide UI elements
-const CONDITIONAL_UI_TIMINGS = Object.freeze({
-	always: "always",
-	onlyAfterAnswering: "after",
-});
 
 // Stored in state.activeScreen
 const SCREENS = Object.freeze({
@@ -34,31 +33,6 @@ const SCREENS = Object.freeze({
 	results: 1,
 	settings: 2,
 });
-
-const defaultSettings = () => {
-	let inputs = document
-		.getElementById("options-form")
-		.querySelectorAll('[type="checkbox"]');
-	let settings = {};
-	for (let x of Array.from(inputs)) {
-		settings[x.name] = true;
-	}
-
-	// Set input radio values
-	settings["translationTiming"] = CONDITIONAL_UI_TIMINGS.always;
-	settings["furiganaTiming"] = CONDITIONAL_UI_TIMINGS.always;
-
-	return settings;
-};
-
-function removeNonConjugationSettings(settings) {
-	let prunedSettings = JSON.parse(JSON.stringify(settings));
-
-	nonConjugationSettings.forEach((s) => {
-		delete prunedSettings[s];
-	});
-	return prunedSettings;
-}
 
 function wordTypeToDisplayText(type) {
 	if (type == "u") {
@@ -77,11 +51,14 @@ function wordTypeToDisplayText(type) {
 function conjugationInqueryFormatting(conjugation) {
 	let newString = "";
 
-	if (conjugation.tense == "Past") {
+	if (conjugation.type === CONJUGATION_TYPES.past) {
 		newString +=
 			'<div class="conjugation-inquery"><div class="inquery-emoji">⌚</div><div class="inquery-text">Past</div></div> ';
-	} else if (conjugation.tense == "て-form" || conjugation.tense == "Adverb") {
-		newString += conjugation.tense;
+	} else if (
+		conjugation.type === CONJUGATION_TYPES.te ||
+		conjugation.type === CONJUGATION_TYPES.adverb
+	) {
+		newString += conjugation.type;
 	}
 
 	if (conjugation.affirmative === true) {
@@ -135,35 +112,9 @@ function updateCurrentWord(word) {
 		conjugationInqueryFormatting(word.conjugation);
 }
 
-// returns string indicating type
-function wordPartOfSpeech(wordJSON) {
-	if (
-		wordJSON.type == "u" ||
-		wordJSON.type == "ru" ||
-		wordJSON.type == "irv"
-	) {
-		return "verb";
-	} else if (
-		wordJSON.type == "i" ||
-		wordJSON.type == "na" ||
-		wordJSON.type == "ira"
-	) {
-		return "adjective";
-	}
-}
-
-class Conjugation {
-	constructor(conjugations, tense, affirmative, polite) {
-		this.conjugations = conjugations;
-		this.tense = tense;
-		this.affirmative = affirmative;
-		this.polite = polite;
-	}
-}
-
-function touConjugation(affirmative, polite, tense, isKanji) {
+function touConjugation(affirmative, polite, conjugationType, isKanji) {
 	let firstLetter = isKanji ? "問" : "と";
-	if (tense == "present") {
+	if (conjugationType === CONJUGATION_TYPES.present) {
 		if (affirmative && polite) {
 			return firstLetter + "います";
 		} else if (affirmative && !polite) {
@@ -173,7 +124,7 @@ function touConjugation(affirmative, polite, tense, isKanji) {
 		} else if (!affirmative && !polite) {
 			return firstLetter + "わない";
 		}
-	} else if (tense == "past") {
+	} else if (conjugationType === CONJUGATION_TYPES.past) {
 		if (affirmative && polite) {
 			return firstLetter + "いました";
 		} else if (affirmative && !polite) {
@@ -186,13 +137,13 @@ function touConjugation(affirmative, polite, tense, isKanji) {
 		} else if (!affirmative && !polite) {
 			return firstLetter + "わなかった";
 		}
-	} else if (tense == "te") {
+	} else if (conjugationType == CONJUGATION_TYPES.te) {
 		return firstLetter + "うて";
 	}
 }
 
-function aruConjugation(affirmative, polite, tense) {
-	if (tense == "present") {
+function aruConjugation(affirmative, polite, conjugationType) {
+	if (conjugationType == CONJUGATION_TYPES.present) {
 		if (affirmative && polite) {
 			return "あります";
 		} else if (affirmative && !polite) {
@@ -202,7 +153,7 @@ function aruConjugation(affirmative, polite, tense) {
 		} else if (!affirmative && !polite) {
 			return "ない";
 		}
-	} else if (tense == "past") {
+	} else if (conjugationType == CONJUGATION_TYPES.past) {
 		if (affirmative && polite) {
 			return "ありました";
 		} else if (affirmative && !polite) {
@@ -212,14 +163,14 @@ function aruConjugation(affirmative, polite, tense) {
 		} else if (!affirmative && !polite) {
 			return "なかった";
 		}
-	} else if (tense == "te") {
+	} else if (conjugationType == CONJUGATION_TYPES.te) {
 		return "あって";
 	}
 }
 
-function kuruConjugation(affirmative, polite, tense, isKanji) {
+function kuruConjugation(affirmative, polite, conjugationType, isKanji) {
 	let retval;
-	if (tense == "present") {
+	if (conjugationType === CONJUGATION_TYPES.present) {
 		if (affirmative && polite) {
 			retval = "きます";
 		} else if (affirmative && !polite) {
@@ -229,7 +180,7 @@ function kuruConjugation(affirmative, polite, tense, isKanji) {
 		} else if (!affirmative && !polite) {
 			retval = "こない";
 		}
-	} else if (tense == "past") {
+	} else if (conjugationType === CONJUGATION_TYPES.past) {
 		if (affirmative && polite) {
 			retval = "きました";
 		} else if (affirmative && !polite) {
@@ -239,7 +190,7 @@ function kuruConjugation(affirmative, polite, tense, isKanji) {
 		} else if (!affirmative && !polite) {
 			retval = "こなかった";
 		}
-	} else if (tense == "te") {
+	} else if (conjugationType === CONJUGATION_TYPES.te) {
 		retval = "きて";
 	}
 
@@ -255,8 +206,8 @@ function kuruConjugation(affirmative, polite, tense, isKanji) {
 	return retval;
 }
 
-function suruConjugation(affirmative, polite, tense) {
-	if (tense == "present") {
+function suruConjugation(affirmative, polite, conjugationType) {
+	if (conjugationType === CONJUGATION_TYPES.present) {
 		if (affirmative && polite) {
 			return "します";
 		} else if (affirmative && !polite) {
@@ -266,7 +217,7 @@ function suruConjugation(affirmative, polite, tense) {
 		} else if (!affirmative && !polite) {
 			return "しない";
 		}
-	} else if (tense == "past") {
+	} else if (conjugationType === CONJUGATION_TYPES.past) {
 		if (affirmative && polite) {
 			return "しました";
 		} else if (affirmative && !polite) {
@@ -276,14 +227,14 @@ function suruConjugation(affirmative, polite, tense) {
 		} else if (!affirmative && !polite) {
 			return "しなかった";
 		}
-	} else if (tense == "te") {
+	} else if (conjugationType === CONJUGATION_TYPES.te) {
 		return "して";
 	}
 }
 
-function ikuConjugation(affirmative, polite, tense, isKanji) {
+function ikuConjugation(affirmative, polite, conjugationType, isKanji) {
 	let firstLetter = isKanji ? "行" : "い";
-	if (tense == "present") {
+	if (conjugationType === CONJUGATION_TYPES.present) {
 		if (affirmative && polite) {
 			return firstLetter + "きます";
 		} else if (affirmative && !polite) {
@@ -293,7 +244,7 @@ function ikuConjugation(affirmative, polite, tense, isKanji) {
 		} else if (!affirmative && !polite) {
 			return firstLetter + "かない";
 		}
-	} else if (tense == "past") {
+	} else if (conjugationType === CONJUGATION_TYPES.past) {
 		if (affirmative && polite) {
 			return firstLetter + "きました";
 		} else if (affirmative && !polite) {
@@ -306,7 +257,7 @@ function ikuConjugation(affirmative, polite, tense, isKanji) {
 		} else if (!affirmative && !polite) {
 			return firstLetter + "かなかった";
 		}
-	} else if (tense == "te") {
+	} else if (conjugationType === CONJUGATION_TYPES.te) {
 		return firstLetter + "って";
 	}
 }
@@ -320,24 +271,59 @@ function checkSuffix(hiraganaWord, suffix) {
 	return hiraganaWord.replace(suffix, "");
 }
 
-function irregularVerbConjugation(hiraganaVerb, affirmative, polite, tense) {
+function irregularVerbConjugation(
+	hiraganaVerb,
+	affirmative,
+	polite,
+	conjugationType
+) {
 	let prefix, conjugatedSuffix;
 	if ((prefix = checkSuffix(hiraganaVerb, "いく")) !== false) {
-		conjugatedSuffix = ikuConjugation(affirmative, polite, tense, false);
+		conjugatedSuffix = ikuConjugation(
+			affirmative,
+			polite,
+			conjugationType,
+			false
+		);
 	} else if ((prefix = checkSuffix(hiraganaVerb, "行く")) !== false) {
-		conjugatedSuffix = ikuConjugation(affirmative, polite, tense, true);
+		conjugatedSuffix = ikuConjugation(
+			affirmative,
+			polite,
+			conjugationType,
+			true
+		);
 	} else if ((prefix = checkSuffix(hiraganaVerb, "する")) !== false) {
-		conjugatedSuffix = suruConjugation(affirmative, polite, tense);
+		conjugatedSuffix = suruConjugation(affirmative, polite, conjugationType);
 	} else if ((prefix = checkSuffix(hiraganaVerb, "くる")) !== false) {
-		conjugatedSuffix = kuruConjugation(affirmative, polite, tense, false);
+		conjugatedSuffix = kuruConjugation(
+			affirmative,
+			polite,
+			conjugationType,
+			false
+		);
 	} else if ((prefix = checkSuffix(hiraganaVerb, "来る")) !== false) {
-		conjugatedSuffix = kuruConjugation(affirmative, polite, tense, true);
+		conjugatedSuffix = kuruConjugation(
+			affirmative,
+			polite,
+			conjugationType,
+			true
+		);
 	} else if ((prefix = checkSuffix(hiraganaVerb, "ある")) !== false) {
-		conjugatedSuffix = aruConjugation(affirmative, polite, tense);
+		conjugatedSuffix = aruConjugation(affirmative, polite, conjugationType);
 	} else if ((prefix = checkSuffix(hiraganaVerb, "とう")) !== false) {
-		conjugatedSuffix = touConjugation(affirmative, polite, tense, false);
+		conjugatedSuffix = touConjugation(
+			affirmative,
+			polite,
+			conjugationType,
+			false
+		);
 	} else if ((prefix = checkSuffix(hiraganaVerb, "問う")) !== false) {
-		conjugatedSuffix = touConjugation(affirmative, polite, tense, true);
+		conjugatedSuffix = touConjugation(
+			affirmative,
+			polite,
+			conjugationType,
+			true
+		);
 	}
 
 	// There may be multiple correct suffixes
@@ -354,8 +340,8 @@ function irregularVerbConjugation(hiraganaVerb, affirmative, polite, tense) {
 	return "Error";
 }
 
-function iiConjugation(affirmative, polite, tense) {
-	if (tense == "present") {
+function iiConjugation(affirmative, polite, conjugationType) {
+	if (conjugationType === CONJUGATION_TYPES.present) {
 		if (affirmative && polite) {
 			return ["いいです", "良いです"];
 		} else if (affirmative && !polite) {
@@ -370,7 +356,7 @@ function iiConjugation(affirmative, polite, tense) {
 		} else if (!affirmative && !polite) {
 			return ["よくない", "良くない"];
 		}
-	} else if (tense == "past") {
+	} else if (conjugationType === CONJUGATION_TYPES.past) {
 		if (affirmative && polite) {
 			return ["よかったです", "良かったです"];
 		} else if (affirmative && !polite) {
@@ -385,7 +371,7 @@ function iiConjugation(affirmative, polite, tense) {
 		} else if (!affirmative && !polite) {
 			return ["よくなかった", "良くなかった"];
 		}
-	} else if (tense == "adverb") {
+	} else if (conjugationType === CONJUGATION_TYPES.adverb) {
 		return ["よく", "良く"];
 	}
 }
@@ -394,12 +380,14 @@ function irregularAdjectiveConjugation(
 	hiraganaAdjective,
 	affirmative,
 	polite,
-	tense
+	conjugationType
 ) {
 	if (hiraganaAdjective == "いい") {
-		return iiConjugation(affirmative, polite, tense);
+		return iiConjugation(affirmative, polite, conjugationType);
 	} else if (hiraganaAdjective == "かっこいい") {
-		let conjugations = [].concat(iiConjugation(affirmative, polite, tense));
+		let conjugations = [].concat(
+			iiConjugation(affirmative, polite, conjugationType)
+		);
 		for (let i = 0; i < conjugations.length; i++) {
 			conjugations[i] = "かっこ" + conjugations[i];
 		}
@@ -507,169 +495,195 @@ function dropFinalLetter(word) {
 	return word.substring(0, word.length - 1);
 }
 
-let conjugationFunctions = {
-	verb: {
-		present: function (hiraganaVerb, type, affirmative, polite) {
+// Conjugation functions can return a single string value, or an array of string values
+const conjugationFunctions = {
+	[PARTS_OF_SPEECH.verb]: {
+		[CONJUGATION_TYPES.present]: function (
+			baseVerbText,
+			type,
+			affirmative,
+			polite
+		) {
 			if (type == "irv") {
 				return irregularVerbConjugation(
-					hiraganaVerb,
+					baseVerbText,
 					affirmative,
 					polite,
-					"present"
+					CONJUGATION_TYPES.present
 				);
 			} else if (affirmative && polite) {
-				return masuStem(hiraganaVerb, type) + "ます";
+				return masuStem(baseVerbText, type) + "ます";
 			} else if (affirmative && !polite) {
-				return hiraganaVerb;
+				return baseVerbText;
 			} else if (!affirmative && polite) {
 				return [
-					masuStem(hiraganaVerb, type) + "ません",
-					plainNegativeComplete(hiraganaVerb, type) + "です",
+					masuStem(baseVerbText, type) + "ません",
+					plainNegativeComplete(baseVerbText, type) + "です",
 				];
 			} else if (!affirmative && !polite) {
-				return plainNegativeComplete(hiraganaVerb, type);
+				return plainNegativeComplete(baseVerbText, type);
 			}
 		},
-		past: function (hiraganaVerb, type, affirmative, polite) {
+		[CONJUGATION_TYPES.past]: function (
+			baseVerbText,
+			type,
+			affirmative,
+			polite
+		) {
 			if (type == "irv") {
 				return irregularVerbConjugation(
-					hiraganaVerb,
+					baseVerbText,
 					affirmative,
 					polite,
-					"past"
+					CONJUGATION_TYPES.past
 				);
 			} else if (affirmative && polite) {
-				return masuStem(hiraganaVerb, type) + "ました";
+				return masuStem(baseVerbText, type) + "ました";
 			} else if (affirmative && !polite && type == "u") {
 				return (
-					dropFinalLetter(hiraganaVerb) +
-					changeToPastPlain(hiraganaVerb.charAt(hiraganaVerb.length - 1))
+					dropFinalLetter(baseVerbText) +
+					changeToPastPlain(baseVerbText.charAt(baseVerbText.length - 1))
 				);
 			} else if (affirmative && !polite && type == "ru") {
-				return masuStem(hiraganaVerb, type) + "た";
+				return masuStem(baseVerbText, type) + "た";
 			} else if (!affirmative && polite) {
-				let plainNegative = plainNegativeComplete(hiraganaVerb, type);
+				let plainNegative = plainNegativeComplete(baseVerbText, type);
 				let plainNegativePast = dropFinalLetter(plainNegative) + "かった";
 				return [
-					masuStem(hiraganaVerb, type) + "ませんでした",
+					masuStem(baseVerbText, type) + "ませんでした",
 					plainNegativePast + "です",
 				];
 			} else if (!affirmative && !polite) {
-				let plainNegative = plainNegativeComplete(hiraganaVerb, type);
+				let plainNegative = plainNegativeComplete(baseVerbText, type);
 				return dropFinalLetter(plainNegative) + "かった";
 			}
 		},
-		te: function (hiraganaVerb, type) {
+		[CONJUGATION_TYPES.te]: function (baseVerbText, type) {
 			if (type == "irv") {
-				return irregularVerbConjugation(hiraganaVerb, false, false, "te");
+				return irregularVerbConjugation(
+					baseVerbText,
+					false,
+					false,
+					CONJUGATION_TYPES.te
+				);
 			} else if (type == "u") {
-				let finalChar = hiraganaVerb.charAt(hiraganaVerb.length - 1);
+				let finalChar = baseVerbText.charAt(baseVerbText.length - 1);
 				if (finalChar == "う" || finalChar == "つ" || finalChar == "る") {
-					return dropFinalLetter(hiraganaVerb) + "って";
+					return dropFinalLetter(baseVerbText) + "って";
 				} else if (
 					finalChar == "む" ||
 					finalChar == "ぶ" ||
 					finalChar == "ぬ"
 				) {
-					return dropFinalLetter(hiraganaVerb) + "んで";
+					return dropFinalLetter(baseVerbText) + "んで";
 				} else if (finalChar == "く") {
-					return dropFinalLetter(hiraganaVerb) + "いて";
+					return dropFinalLetter(baseVerbText) + "いて";
 				} else if (finalChar == "ぐ") {
-					return dropFinalLetter(hiraganaVerb) + "いで";
+					return dropFinalLetter(baseVerbText) + "いで";
 				} else if (finalChar == "す") {
-					return dropFinalLetter(hiraganaVerb) + "して";
+					return dropFinalLetter(baseVerbText) + "して";
 				}
 			} else if (type == "ru") {
-				return masuStem(hiraganaVerb, type) + "て";
+				return masuStem(baseVerbText, type) + "て";
 			}
 		},
 	},
 
-	adjective: {
-		present: function (hiraganaAdjective, type, affirmative, polite) {
+	[PARTS_OF_SPEECH.adjective]: {
+		[CONJUGATION_TYPES.present]: function (
+			baseAdjectiveText,
+			type,
+			affirmative,
+			polite
+		) {
 			if (type == "ira") {
 				return irregularAdjectiveConjugation(
-					hiraganaAdjective,
+					baseAdjectiveText,
 					affirmative,
 					polite,
-					"present"
+					CONJUGATION_TYPES.present
 				);
 			} else if (affirmative && polite) {
-				return hiraganaAdjective + "です";
+				return baseAdjectiveText + "です";
 			} else if (affirmative && !polite && type == "i") {
-				return hiraganaAdjective;
+				return baseAdjectiveText;
 			} else if (affirmative && !polite && type == "na") {
-				return hiraganaAdjective + "だ";
+				return baseAdjectiveText + "だ";
 			} else if (!affirmative && polite && type == "i") {
 				return [
-					dropFinalLetter(hiraganaAdjective) + "くないです",
-					dropFinalLetter(hiraganaAdjective) + "くありません",
+					dropFinalLetter(baseAdjectiveText) + "くないです",
+					dropFinalLetter(baseAdjectiveText) + "くありません",
 				];
 			} else if (!affirmative && polite && type == "na") {
 				return [
-					hiraganaAdjective + "じゃないです",
-					hiraganaAdjective + "ではないです",
-					hiraganaAdjective + "じゃありません",
-					hiraganaAdjective + "ではありません",
+					baseAdjectiveText + "じゃないです",
+					baseAdjectiveText + "ではないです",
+					baseAdjectiveText + "じゃありません",
+					baseAdjectiveText + "ではありません",
 				];
 			} else if (!affirmative && !polite && type == "i") {
-				return dropFinalLetter(hiraganaAdjective) + "くない";
+				return dropFinalLetter(baseAdjectiveText) + "くない";
 			} else if (!affirmative && !polite && type == "na") {
 				return [
-					hiraganaAdjective + "じゃない",
-					hiraganaAdjective + "ではない",
+					baseAdjectiveText + "じゃない",
+					baseAdjectiveText + "ではない",
 				];
 			}
 		},
-		past: function (hiraganaAdjective, type, affirmative, polite) {
+		[CONJUGATION_TYPES.past]: function (
+			baseAdjectiveText,
+			type,
+			affirmative,
+			polite
+		) {
 			if (type == "ira") {
 				return irregularAdjectiveConjugation(
-					hiraganaAdjective,
+					baseAdjectiveText,
 					affirmative,
 					polite,
-					"past"
+					CONJUGATION_TYPES.past
 				);
 			} else if (affirmative && polite && type == "i") {
-				return dropFinalLetter(hiraganaAdjective) + "かったです";
+				return dropFinalLetter(baseAdjectiveText) + "かったです";
 			} else if (affirmative && polite && type == "na") {
-				return hiraganaAdjective + "でした";
+				return baseAdjectiveText + "でした";
 			} else if (affirmative && !polite && type == "i") {
-				return dropFinalLetter(hiraganaAdjective) + "かった";
+				return dropFinalLetter(baseAdjectiveText) + "かった";
 			} else if (affirmative && !polite && type == "na") {
-				return hiraganaAdjective + "だった";
+				return baseAdjectiveText + "だった";
 			} else if (!affirmative && polite && type == "i") {
 				return [
-					dropFinalLetter(hiraganaAdjective) + "くなかったです",
-					dropFinalLetter(hiraganaAdjective) + "くありませんでした",
+					dropFinalLetter(baseAdjectiveText) + "くなかったです",
+					dropFinalLetter(baseAdjectiveText) + "くありませんでした",
 				];
 			} else if (!affirmative && polite && type == "na") {
 				return [
-					hiraganaAdjective + "じゃなかったです",
-					hiraganaAdjective + "ではなかったです",
-					hiraganaAdjective + "じゃありませんでした",
-					hiraganaAdjective + "ではありませんでした",
+					baseAdjectiveText + "じゃなかったです",
+					baseAdjectiveText + "ではなかったです",
+					baseAdjectiveText + "じゃありませんでした",
+					baseAdjectiveText + "ではありませんでした",
 				];
 			} else if (!affirmative && !polite && type == "i") {
-				return dropFinalLetter(hiraganaAdjective) + "くなかった";
+				return dropFinalLetter(baseAdjectiveText) + "くなかった";
 			} else if (!affirmative && !polite && type == "na") {
 				return [
-					hiraganaAdjective + "じゃなかった",
-					hiraganaAdjective + "ではなかった",
+					baseAdjectiveText + "じゃなかった",
+					baseAdjectiveText + "ではなかった",
 				];
 			}
 		},
-		adverb: function (hiraganaAdjective, type) {
+		[CONJUGATION_TYPES.adverb]: function (baseAdjectiveText, type) {
 			if (type == "ira") {
 				return irregularAdjectiveConjugation(
-					hiraganaAdjective,
+					baseAdjectiveText,
 					false,
 					false,
-					"adverb"
+					CONJUGATION_TYPES.adverb
 				);
 			} else if (type == "i") {
-				return dropFinalLetter(hiraganaAdjective) + "く";
+				return dropFinalLetter(baseAdjectiveText) + "く";
 			} else if (type == "na") {
-				return hiraganaAdjective + "に";
+				return baseAdjectiveText + "に";
 			}
 		},
 	},
@@ -685,110 +699,165 @@ function toHiragana(wordHtml) {
 	return wordHtml.replace(/<ruby>|<\/ruby>|.<rt>|<\/rt>/g, "");
 }
 
-function conjFuncIndexToName(index, wordPartOfSpeech) {
-	if (index == 0) {
-		return "Present";
-	} else if (index == 1) {
-		return "Past";
-	} else if (index == 2 && wordPartOfSpeech == "verb") {
-		return "て-form";
-	} else if (index == 2 && wordPartOfSpeech == "adjective") {
-		return "Adverb";
+// Determines word part of speech based on wordJSON.type
+function getPartOfSpeech(wordJSON) {
+	if (
+		wordJSON.type === "u" ||
+		wordJSON.type === "ru" ||
+		wordJSON.type === "irv"
+	) {
+		return PARTS_OF_SPEECH.verb;
+	} else if (
+		wordJSON.type === "i" ||
+		wordJSON.type === "na" ||
+		wordJSON.type === "ira"
+	) {
+		return PARTS_OF_SPEECH.adjective;
 	}
 }
 
-function getAllConjugations(wordJSON) {
-	let conj = [];
+// Standard variations are affirmative, negative, plain, and polite
+// Returns an array of Conjugations
+function getStandardVariationConjugations(
+	wordJSON,
+	partOfSpeech,
+	conjugationType,
+	validBaseWordSpellings
+) {
+	const conjugationObjects = [];
 	let affirmative = false,
 		polite = false;
 
-	let keys, conjFunctions;
-	let partOfSpeech = wordPartOfSpeech(wordJSON);
-	if (partOfSpeech == "verb") {
-		conjFunctions = conjugationFunctions.verb;
-		keys = Object.keys(conjFunctions);
-	} else if (partOfSpeech == "adjective") {
-		conjFunctions = conjugationFunctions.adjective;
-		keys = Object.keys(conjFunctions);
-	}
-
-	let hiragana = toHiragana(wordJSON.kanji);
-	let kanji = toKanjiPlusHiragana(wordJSON.kanji);
-
-	let hiraganaConj, kanjiConj;
-	// Loop through all 4 permutations of affirmative/negative and polite/plain
-	for (let i = 0; i < (keys.length - 1) * 4; i++) {
+	for (let i = 0; i < 4; i++) {
 		if (i % 2 == 0) {
 			affirmative = !affirmative;
 		}
 		polite = !polite;
 
-		let keyIndex = Math.floor(i / 4);
-
 		// don't need present plain affirmative since it's the dictionary form
-		if (affirmative && !polite && keyIndex == 0 && wordJSON.type != "na")
+		if (
+			affirmative &&
+			!polite &&
+			conjugationType === CONJUGATION_TYPES.present &&
+			wordJSON.type != "na"
+		)
 			continue;
 
-		hiraganaConj = conjFunctions[keys[keyIndex]](
-			hiragana,
-			wordJSON.type,
-			affirmative,
-			polite
-		);
-		kanjiConj = conjFunctions[keys[keyIndex]](
-			kanji,
-			wordJSON.type,
-			affirmative,
-			polite
-		);
-
-		let altOkuriganaConj = [];
-		if (wordJSON.altOkurigana && wordJSON.altOkurigana.length) {
-			for (
-				let altIndex = 0;
-				altIndex < wordJSON.altOkurigana.length;
-				altIndex++
-			) {
-				let altOkurigana = wordJSON.altOkurigana[altIndex];
-				altOkuriganaConj = altOkuriganaConj.concat(
-					conjFunctions[keys[keyIndex]](
-						altOkurigana,
-						wordJSON.type,
-						affirmative,
-						polite
-					)
-				);
-			}
-		}
-
-		let allConj = [];
-		allConj = allConj.concat(hiraganaConj, kanjiConj, altOkuriganaConj);
-		conj.push(
-			new Conjugation(
-				allConj,
-				conjFuncIndexToName(keyIndex, partOfSpeech),
+		conjugationObjects.push(
+			getConjugation(
+				wordJSON,
+				partOfSpeech,
+				conjugationType,
+				validBaseWordSpellings,
 				affirmative,
 				polite
 			)
 		);
 	}
 
-	// te and adverb
-	hiraganaConj = conjFunctions[keys[keys.length - 1]](hiragana, wordJSON.type);
-	kanjiConj = conjFunctions[keys[keys.length - 1]](kanji, wordJSON.type);
-	let allConj = [];
-	allConj = allConj.concat(hiraganaConj, kanjiConj);
-	conj.push(
-		new Conjugation(
-			allConj,
-			conjFuncIndexToName(keys.length - 1, partOfSpeech),
-			null,
-			null
-		)
-	);
+	return conjugationObjects;
+}
 
-	// array of Conjugation objects
-	return conj;
+function getConjugation(
+	wordJSON,
+	partOfSpeech,
+	conjugationType,
+	validBaseWordSpellings,
+	affirmative,
+	polite
+) {
+	const validConjugatedAnswers = [];
+	const conjugationFunction =
+		conjugationFunctions[partOfSpeech][conjugationType];
+
+	validBaseWordSpellings?.forEach((baseWord) => {
+		validConjugatedAnswers.push(
+			conjugationFunction(baseWord, wordJSON.type, affirmative, polite)
+		);
+	});
+
+	return new Conjugation(
+		// conjugationFunction may return a string or array, so flatten to get rid of nested arrays
+		validConjugatedAnswers.flat(),
+		conjugationType,
+		affirmative,
+		polite
+	);
+}
+
+function getAllConjugations(wordJSON) {
+	const allConjugations = [];
+	const partOfSpeech = getPartOfSpeech(wordJSON);
+
+	// Get all valid spellings for the base word
+	// For example ["あがる", "上がる", "上る"]
+	let validBaseWordSpellings = [
+		toHiragana(wordJSON.kanji),
+		toKanjiPlusHiragana(wordJSON.kanji),
+	];
+	if (wordJSON.altOkurigana?.length) {
+		validBaseWordSpellings = validBaseWordSpellings.concat(
+			wordJSON.altOkurigana
+		);
+	}
+
+	// Right now verbs and adjectives have the same types with standard variations.
+	// If more verb types are added in the future this will not be the case.
+	const typesWithStandardVariations = [
+		CONJUGATION_TYPES.present,
+		CONJUGATION_TYPES.past,
+	];
+
+	typesWithStandardVariations.forEach((conjugationType) => {
+		allConjugations.push(
+			getStandardVariationConjugations(
+				wordJSON,
+				partOfSpeech,
+				conjugationType,
+				validBaseWordSpellings
+			)
+		);
+	});
+
+	if (partOfSpeech === PARTS_OF_SPEECH.verb) {
+		// Add te
+		allConjugations.push(
+			getConjugation(
+				wordJSON,
+				partOfSpeech,
+				CONJUGATION_TYPES.te,
+				validBaseWordSpellings,
+				null,
+				null
+			)
+		);
+	} else if (partOfSpeech === PARTS_OF_SPEECH.adjective) {
+		// Add adverb
+		allConjugations.push(
+			getConjugation(
+				wordJSON,
+				partOfSpeech,
+				CONJUGATION_TYPES.adverb,
+				validBaseWordSpellings,
+				null,
+				null
+			)
+		);
+	}
+
+	// allConjugations contains either Conjugations or arrays of Conjugations.
+	// Flatten to make into one array.
+	return allConjugations.flat();
+}
+
+class Conjugation {
+	// conjugationType is CONJUGATION_TYPES enum
+	constructor(validAnswers, conjugationType, affirmative, polite) {
+		this.validAnswers = validAnswers;
+		this.type = conjugationType;
+		this.affirmative = affirmative;
+		this.polite = polite;
+	}
 }
 
 class Word {
@@ -802,14 +871,6 @@ class Word {
 		// wasRecentlyIncorrect is used when calculating probability
 		this.wasRecentlyIncorrect = false;
 	}
-}
-
-function createArrayOfArrays(length) {
-	let array = new Array(length);
-	for (let i = 0; i < array.length; i++) {
-		array[i] = [];
-	}
-	return array;
 }
 
 class WordRecentlySeen {
@@ -898,6 +959,33 @@ function updateProbabilites(
 		return;
 	}
 
+	// Lower probability of running into words in the same group
+	if (currentWord.wordJSON.group) {
+		const currentConjugation = currentWord.conjugation;
+		const group = currentWord.wordJSON.group;
+
+		currentWords[
+			getPartOfSpeech(currentWord.wordJSON) === PARTS_OF_SPEECH.verb ? 0 : 1
+		]
+			.filter((word) => {
+				const conjugation = word.conjugation;
+				// Only alter probabilities of the exact same conjugation for other words in the group
+				return (
+					word.wordJSON.group === group &&
+					word !== currentWord &&
+					conjugation.type === currentConjugation.type &&
+					conjugation.affirmative === currentConjugation.affirmative &&
+					conjugation.polite === currentConjugation.polite
+				);
+			})
+			.forEach((word) => {
+				// Have to be careful with lowering this too much, because it can affect findMinProb for other conjugations.
+				// Note that this is happening whether currentWordWasCorrect is true or false,
+				// so if someone got currentWord wrong many times it would tank the probabilities in this forEach over time.
+				word.probability /= 4;
+			});
+	}
+
 	// We wait "roundsToWait" rounds to set the probability of questions.
 	// This allows us to have a few rounds immediately after a question where it's guaranteed to not appear again,
 	// followed by the ability to set a high probability for the question to show up immediately after that waiting period (if the answer was incorrect).
@@ -950,20 +1038,12 @@ function createWordList(JSONWords) {
 	for (let i = 0; i < JSONWords.length; i++) {
 		for (let j = 0; j < JSONWords[i].length; j++) {
 			let conjugations = getAllConjugations(JSONWords[i][j]);
-
 			for (let k = 0; k < conjugations.length; k++) {
 				wordList[i].push(new Word(JSONWords[i][j], conjugations[k]));
 			}
 		}
 	}
 	return wordList;
-}
-
-// 0 = verbs 1 = adjectives
-// storing in array instead of object to make parsing faster
-
-function getWords() {
-	new ConjugationApp([wordData.verbs, wordData.adjectives]);
 }
 
 function pickRandomWord(wordList) {
@@ -1038,7 +1118,7 @@ function updateStatusBoxes(word, entryText) {
 	let statusBox = document.getElementById("status-box");
 	statusBox.style.display = "inline-flex";
 
-	if (word.conjugation.conjugations.some((e) => e == entryText)) {
+	if (word.conjugation.validAnswers.some((e) => e == entryText)) {
 		statusBox.style.background = "green";
 		document.getElementById("status-text").innerHTML =
 			"Correct" + "<br>" + entryText + " ○";
@@ -1052,406 +1132,27 @@ function updateStatusBoxes(word, entryText) {
 		);
 
 		statusBox.style.background = "rgb(218, 5, 5)";
+		// Assuming validAnswers[0] is the hiragana answer
 		document.getElementById("status-text").innerHTML =
 			(entryText == "" ? "_" : entryText) +
 			" ×<br>" +
-			word.conjugation.conjugations[0] +
+			word.conjugation.validAnswers[0] +
 			" ○";
 	}
 }
 
-function addClassName(element, name) {
-	let arr = element.className.split(" ");
-	if (arr.indexOf(name) == -1) {
-		element.className += " " + name;
-	}
-}
-
-function checkToEnableBackButton() {
-	let errors = document.getElementsByClassName("must-choose-one-text");
-	for (let error of Array.from(errors)) {
-		// checks if any error messages take up space on the screen
-		if (error.offsetWidth > 0 && error.offsetHeight > 0) {
-			document.getElementById("back-button").disabled = true;
-			return;
-		}
-	}
-
-	document.getElementById("back-button").disabled = false;
-}
-
-function onClickCheckboxCheckError(e) {
-	optionsGroupCheckError(e.currentTarget);
-}
-
-function toggleClassName(element, className, enabled) {
-	if (enabled) {
-		addClassName(element, className);
-	} else {
-		element.className = element.className.replace(className, "");
-	}
-}
-
-function toggleDisplayNone(element, enabled) {
-	toggleClassName(element, "display-none", enabled);
-}
-
-function toggleError(errorElement, errorMessage, enabled) {
-	if (enabled) {
-		let backButton = document.getElementById("back-button");
-		errorElement.textContent = errorMessage;
-		toggleDisplayNone(errorElement, false);
-		backButton.disabled = true;
-	} else {
-		toggleDisplayNone(errorElement, true);
-		checkToEnableBackButton();
-	}
-}
-
-function checkInputsForError(inputs, shouldBeChecked) {
-	for (let input of Array.from(inputs)) {
-		if (input.checked !== shouldBeChecked) {
-			return false;
-		}
-	}
-	return true;
-}
-
-function checkInputsAndToggleError(
-	inputs,
-	errorElement,
-	errorMessage,
-	shouldBeChecked
-) {
-	toggleError(
-		errorElement,
-		errorMessage,
-		checkInputsForError(inputs, shouldBeChecked)
-	);
-}
-
-function optionsGroupCheckError(groupElement) {
-	let inputs = groupElement.getElementsByTagName("input");
-	let errorElement = groupElement.getElementsByClassName(
-		"must-choose-one-text"
-	)[0];
-
-	checkInputsAndToggleError(
-		inputs,
-		errorElement,
-		"*Must choose at least 1 option from this category",
-		false
-	);
-}
-
-function verbAndAdjCheckError() {
-	let inputs = [
-		document.querySelector('input[name="verb"]'),
-		document.querySelector('input[name="adjective"]'),
-	];
-	toggleDisplayNone(
-		document.getElementById("verb-options-container"),
-		!inputs[0].checked
-	);
-	toggleDisplayNone(
-		document.getElementById("adjective-options-container"),
-		!inputs[1].checked
-	);
-	let errorElement = document.getElementById("top-must-choose");
-
-	checkInputsAndToggleError(
-		inputs,
-		errorElement,
-		"*Must choose at least 1 option from this category",
-		false
-	);
-}
-
-// --public namespace addition--
-let inputsToSelectVerbPresAffPlain = [];
-const verbPresentInput = document.querySelector('input[name="verbpresent"]');
-const verbAffirmativeInput = document.querySelector(
-	'input[name="verbaffirmative"]'
-);
-const verbPlainInput = document.querySelector('input[name="verbplain"]');
-inputsToSelectVerbPresAffPlain.push(verbPresentInput);
-inputsToSelectVerbPresAffPlain.push(verbAffirmativeInput);
-inputsToSelectVerbPresAffPlain.push(verbPlainInput);
-
-let inputsToDeselectVerbPresAffPlain = [];
-inputsToDeselectVerbPresAffPlain = inputsToDeselectVerbPresAffPlain.concat(
-	Array.from(
-		document.getElementById("verb-tense-group").getElementsByTagName("input")
-	).filter((e) => e != verbPresentInput)
-);
-inputsToDeselectVerbPresAffPlain = inputsToDeselectVerbPresAffPlain.concat(
-	Array.from(
-		document
-			.getElementById("verb-variations-container")
-			.getElementsByTagName("input")
-	).filter((e) => e != verbAffirmativeInput && e != verbPlainInput)
-);
-// --public namespace addition end--
-
-function verbPresAffPlainCheckError() {
-	let optionsGroup = document.getElementById("verb-tense-group");
-	let errorElement = optionsGroup.getElementsByClassName(
-		"must-choose-one-text"
-	)[0];
-
-	let selected = checkInputsForError(inputsToSelectVerbPresAffPlain, true);
-	let unselected = checkInputsForError(
-		inputsToDeselectVerbPresAffPlain,
-		false
-	);
-
-	if (selected && unselected) {
-		toggleError(
-			errorElement,
-			"*Invalid combination: present, affirmative, plain",
-			true
-		);
-		// element could be hidden because verb is unchecked, so check to enable back button
-		checkToEnableBackButton();
-	} else {
-		optionsGroupCheckError(optionsGroup);
-	}
-}
-
-// --public namespace addition--
-let inputsToSelectAdjPresAffPlain = [];
-const adjPresentInput = document.querySelector(
-	'input[name="adjectivepresent"]'
-);
-const adjAffirmativeInput = document.querySelector(
-	'input[name="adjectiveaffirmative"]'
-);
-const adjPlainInput = document.querySelector('input[name="adjectiveplain"]');
-inputsToSelectAdjPresAffPlain.push(adjPresentInput);
-inputsToSelectAdjPresAffPlain.push(adjAffirmativeInput);
-inputsToSelectAdjPresAffPlain.push(adjPlainInput);
-
-let inputsToDeselectAdjPresAffPlain = [];
-inputsToDeselectAdjPresAffPlain = inputsToDeselectAdjPresAffPlain.concat(
-	Array.from(
-		document
-			.getElementById("adjective-tense-group")
-			.getElementsByTagName("input")
-	).filter((e) => e != adjPresentInput)
-);
-inputsToDeselectAdjPresAffPlain = inputsToDeselectAdjPresAffPlain.concat(
-	Array.from(
-		document
-			.getElementById("adjective-variations-container")
-			.getElementsByTagName("input")
-	).filter((e) => e != adjAffirmativeInput && e != adjPlainInput)
-);
-// --public namespace addition end--
-
-function adjPresAffPlainCheckError() {
-	let optionsGroup = document.getElementById("adjective-type-group");
-	let errorElement = optionsGroup.getElementsByClassName(
-		"must-choose-one-text"
-	)[0];
-
-	let selected = checkInputsForError(inputsToSelectAdjPresAffPlain, true);
-	let unselected = checkInputsForError(inputsToDeselectAdjPresAffPlain, false);
-
-	let iAdjInput = document.querySelector('input[name="adjectivei"]');
-	let irrAdjInput = document.querySelector('input[name="adjectiveirregular"]');
-	let naAdjInput = document.querySelector('input[name="adjectivena"]');
-	if (
-		selected &&
-		unselected &&
-		!naAdjInput.checked &&
-		(iAdjInput.checked || irrAdjInput.checked)
-	) {
-		toggleError(
-			errorElement,
-			"*Invalid combination: い/irregular, present, affirmative, plain",
-			true
-		);
-		// element could be hidden because verb is unchecked, so check to enable back button
-		checkToEnableBackButton();
-	} else if (document.querySelector('input[name="adjective"]').checked) {
-		optionsGroupCheckError(optionsGroup);
-	}
-}
-
-// In this context the options Affirmative, Negative, Plain, and Polite
-// are considered "variations" on other conjugation types.
-// Not all types (like て for verbs, adverbs for adjectives) have variations.
-function showHideConjugationVariationOptions(
-	inputWithVariationsClass,
-	variationsContainerId
-) {
-	let inputsWithVariations = document.getElementsByClassName(
-		inputWithVariationsClass
-	);
-	let variationsContainer = document.getElementById(variationsContainerId);
-
-	for (let input of Array.from(inputsWithVariations)) {
-		if (input.checked) {
-			let optionGroups =
-				variationsContainer.getElementsByClassName("options-group");
-			for (let optionGroup of Array.from(optionGroups)) {
-				optionsGroupCheckError(optionGroup);
-			}
-
-			toggleDisplayNone(variationsContainer, false);
-			return;
-		}
-	}
-
-	// If no conjugations with variations were selected, hide the variation options.
-	toggleDisplayNone(variationsContainer, true);
-}
-
-function showHideVerbVariationOptions() {
-	showHideConjugationVariationOptions(
-		"verb-has-variations",
-		"verb-variations-container"
-	);
-}
-
-function showHideAdjectiveVariationOptions() {
-	showHideConjugationVariationOptions(
-		"adjective-has-variations",
-		"adjective-variations-container"
-	);
-}
-
-function showHideFuriganaSubOptions() {
-	toggleDisplayNone(
-		document.getElementById("furigana-sub-options"),
-		!document.getElementById("furigana-checkbox").checked
-	);
-}
-
-function showHideTranslationSubOptions() {
-	toggleDisplayNone(
-		document.getElementById("translation-sub-options"),
-		!document.getElementById("translation-checkbox").checked
-	);
-}
-
-function optionsMenuInit() {
-	let optionsGroups = document.getElementsByClassName("options-group");
-	for (let optionGroup of Array.from(optionsGroups)) {
-		// Note that this registers a listener for a click anywhere in the
-		// options-group element (not just the checkboxes).
-		optionGroup.addEventListener("click", onClickCheckboxCheckError);
-	}
-
-	let verbInputsWithVariations = document.getElementsByClassName(
-		"verb-has-variations"
-	);
-	for (let input of Array.from(verbInputsWithVariations)) {
-		input.addEventListener("click", showHideVerbVariationOptions);
-	}
-
-	let adjectiveInputsWithVariations = document.getElementsByClassName(
-		"adjective-has-variations"
-	);
-	for (let input of Array.from(adjectiveInputsWithVariations)) {
-		input.addEventListener("click", showHideAdjectiveVariationOptions);
-	}
-
-	document
-		.getElementById("furigana-checkbox")
-		.addEventListener("click", showHideFuriganaSubOptions);
-	document
-		.getElementById("translation-checkbox")
-		.addEventListener("click", showHideTranslationSubOptions);
-
-	document
-		.getElementById("verbs-checkbox")
-		.addEventListener("click", verbAndAdjCheckError);
-	document
-		.getElementById("adjectives-checkbox")
-		.addEventListener("click", verbAndAdjCheckError);
-
-	// top level errors
-	let optionsView = document.getElementById("options-view");
-	optionsView.addEventListener("click", verbPresAffPlainCheckError);
-	optionsView.addEventListener("click", adjPresAffPlainCheckError);
-}
-
-function applyNonConjugationSettings(settings) {
-	showEmojis(settings.emoji);
-	showStreak(settings.streak);
-	// showTranslation and showFurigana are dependent on the state, so we can't set them here
-}
-
-function applySettingsLoadWords(settings, completeWordList) {
-	applyNonConjugationSettings(settings);
-
-	let currentWordList = createArrayOfArrays(completeWordList.length);
-
-	const verbRegex = /^verb.+/;
-	if (settings.verb !== false) {
-		// Copy all of the verbs over
-		currentWordList[0] = [...completeWordList[0]];
-
-		let verbOptions = Object.keys(settings).filter((el) =>
-			verbRegex.test(el)
-		);
-		// Filter out the verbs we don't want
-		for (let i = 0; i < verbOptions.length; i++) {
-			if (settings[verbOptions[i]] === false) {
-				currentWordList[0] = currentWordList[0].filter(
-					questionRemoveFilters.verbs[verbOptions[i]]
-				);
-			}
-		}
-	}
-
-	const adjectiveRegex = /^adjective.+/;
-	if (settings.adjective !== false) {
-		// Copy all of the adjectives over
-		currentWordList[1] = [...completeWordList[1]];
-
-		let adjectiveOptions = Object.keys(settings).filter((el) =>
-			adjectiveRegex.test(el)
-		);
-		// Filter out the adjectives we don't want
-		for (let i = 0; i < adjectiveOptions.length; i++) {
-			if (settings[adjectiveOptions[i]] === false) {
-				currentWordList[1] = currentWordList[1].filter(
-					questionRemoveFilters.adjectives[adjectiveOptions[i]]
-				);
-			}
-		}
-	}
-
-	equalizeProbabilities(currentWordList);
-	return currentWordList;
-}
-
 // stored in array in local storage
-class maxScoreObject {
+export class MaxScoreObject {
 	constructor(score, settings) {
 		this.score = score;
 		this.settings = settings;
 	}
 }
 
-function findSettingCombination(maxScoreObjects, settings) {
-	let settingKeys = Object.keys(settings);
-	let flag;
-	for (let i = 0; i < maxScoreObjects.length; i++) {
-		flag = true;
-		for (let s of settingKeys) {
-			if (maxScoreObjects[i].settings[s] != settings[s]) {
-				flag = false;
-				break;
-			}
-		}
-		if (flag == true) {
-			return i;
-		}
-	}
-	return -1;
+// Array index 0 = verbs, 1 = adjectives
+// Stored in an array instead of object to make parsing faster. Upon reflection this was not worth it.
+function initApp() {
+	new ConjugationApp([wordData.verbs, wordData.adjectives]);
 }
 
 class ConjugationApp {
@@ -1599,8 +1300,8 @@ class ConjugationApp {
 			showTranslation(this.state.settings.translation, false);
 
 			// update probabilities before next word is chosen so don't choose same word
-			let inputWasCorrect =
-				this.state.currentWord.conjugation.conjugations.some(
+			const inputWasCorrect =
+				this.state.currentWord.conjugation.validAnswers.some(
 					(e) => e == inputValue
 				);
 
@@ -1630,52 +1331,8 @@ class ConjugationApp {
 	settingsButtonClicked(e) {
 		this.state.activeScreen = SCREENS.settings;
 
-		let checkboxInputs = document.querySelectorAll(
-			`#options-form input[type="checkbox"]`
-		);
-		for (let input of Array.from(checkboxInputs)) {
-			input.checked = this.state.settings[input.name];
-		}
-
-		selectConditionalUiRadio(
-			this.state.settings.furiganaTiming,
-			"furigana-always-radio",
-			"furigana-after-radio"
-		);
-		selectConditionalUiRadio(
-			this.state.settings.translationTiming,
-			"translation-always-radio",
-			"translation-after-radio"
-		);
-
-		function selectConditionalUiRadio(
-			radioValue,
-			alwaysRadioId,
-			onlyAfterAnsweringRadioId
-		) {
-			switch (radioValue) {
-				case CONDITIONAL_UI_TIMINGS.always:
-					document.getElementById(alwaysRadioId).checked = true;
-					break;
-				case CONDITIONAL_UI_TIMINGS.onlyAfterAnswering:
-					document.getElementById(
-						onlyAfterAnsweringRadioId
-					).checked = true;
-					break;
-			}
-		}
-
-		let optionsGroups = document.getElementsByClassName("options-group");
-		for (let group of Array.from(optionsGroups)) {
-			optionsGroupCheckError(group);
-		}
-
-		showHideVerbVariationOptions();
-		showHideAdjectiveVariationOptions();
-		showHideFuriganaSubOptions();
-		showHideTranslationSubOptions();
-
-		verbAndAdjCheckError();
+		selectCheckboxesInUi(this.state.settings);
+		showHideOptionsAndCheckErrors();
 
 		document.getElementById("main-view").style.display = "none";
 		document.getElementById("options-view").style.display = "block";
@@ -1685,61 +1342,33 @@ class ConjugationApp {
 	backButtonClicked(e) {
 		e.preventDefault();
 
-		let checkboxInputs = document.querySelectorAll(
-			'#options-form input[type="checkbox"]'
-		);
-		let newMaxScoreSettings = {};
-		for (let input of Array.from(checkboxInputs)) {
-			this.state.settings[input.name] = input.checked;
-			if (
-				input.offsetWidth > 0 &&
-				input.offsetHeight > 0 &&
-				!nonConjugationSettings.has(input.name)
-			) {
-				newMaxScoreSettings[input.name] = input.checked;
-			}
-		}
-
-		this.state.settings.furiganaTiming =
-			getConditionalUiSetting("furiganaTiming");
-		this.state.settings.translationTiming =
-			getConditionalUiSetting("translationTiming");
-
-		// Default to "always"
-		function getConditionalUiSetting(radioName) {
-			return (
-				document.querySelector(`input[name="${radioName}"]:checked`)
-					?.value ?? CONDITIONAL_UI_TIMINGS.always
-			);
-		}
-
+		insertSettingsFromUi(this.state.settings);
 		localStorage.setItem("settings", JSON.stringify(this.state.settings));
 
-		let settingsIndex = findSettingCombination(
+		const visibleConjugationSettings = getVisibleConjugationSettings();
+		let newMaxScoreIndex = findMaxScoreIndex(
 			this.state.maxScoreObjects,
-			newMaxScoreSettings
+			visibleConjugationSettings
 		);
-		if (settingsIndex == -1) {
+
+		if (newMaxScoreIndex === -1) {
 			this.state.maxScoreObjects.push(
-				new maxScoreObject(0, newMaxScoreSettings)
+				new MaxScoreObject(0, visibleConjugationSettings)
 			);
 			localStorage.setItem(
 				"maxScoreObjects",
 				JSON.stringify(this.state.maxScoreObjects)
 			);
-			settingsIndex = this.state.maxScoreObjects.length - 1;
+			newMaxScoreIndex = this.state.maxScoreObjects.length - 1;
 		}
 
-		if (settingsIndex !== this.state.maxScoreIndex) {
-			localStorage.setItem("maxScoreIndex", settingsIndex);
-			this.state.maxScoreIndex = settingsIndex;
+		if (newMaxScoreIndex !== this.state.maxScoreIndex) {
+			localStorage.setItem("maxScoreIndex", newMaxScoreIndex);
+			this.state.maxScoreIndex = newMaxScoreIndex;
 			this.state.currentStreak0OnReset = true;
 			this.state.loadWordOnReset = true;
 
-			this.state.currentWordList = applySettingsLoadWords(
-				this.state.settings,
-				this.state.completeWordList
-			);
+			this.applySettingsUpdateWordList();
 
 			// Note that the wordsRecentlySeenQueue is not cleared.
 			// This is intentional, so if the new word list happens to include the words you recently missed,
@@ -1768,11 +1397,11 @@ class ConjugationApp {
 			this.state.maxScoreIndex = 0;
 			localStorage.setItem("maxScoreIndex", this.state.maxScoreIndex);
 
-			this.state.settings = defaultSettings();
+			this.state.settings = getDefaultSettings();
 			localStorage.setItem("settings", JSON.stringify(this.state.settings));
 
 			this.state.maxScoreObjects = [
-				new maxScoreObject(
+				new MaxScoreObject(
 					0,
 					removeNonConjugationSettings(this.state.settings)
 				),
@@ -1786,7 +1415,7 @@ class ConjugationApp {
 				localStorage.getItem("maxScoreIndex")
 			);
 			this.state.settings = Object.assign(
-				defaultSettings(),
+				getDefaultSettings(),
 				JSON.parse(localStorage.getItem("settings"))
 			);
 			this.state.maxScoreObjects = JSON.parse(
@@ -1794,10 +1423,7 @@ class ConjugationApp {
 			);
 		}
 
-		this.state.currentWordList = applySettingsLoadWords(
-			this.state.settings,
-			this.state.completeWordList
-		);
+		this.applySettingsUpdateWordList();
 		this.state.currentWord = loadNewWord(this.state.currentWordList);
 		this.state.wordsRecentlySeenQueue = [];
 
@@ -1809,8 +1435,17 @@ class ConjugationApp {
 
 		this.loadMainView();
 	}
+
+	applySettingsUpdateWordList() {
+		const filteredWords = applyAllSettingsFilterWords(
+			this.state.settings,
+			this.state.completeWordList
+		);
+		equalizeProbabilities(filteredWords);
+		this.state.currentWordList = filteredWords;
+	}
 }
 
-getWords();
+initApp();
 // Keeping the top container hidden at the beginning prevents 1 frame of malformed UI being shown
 toggleDisplayNone(document.getElementById("toppest-container"), false);

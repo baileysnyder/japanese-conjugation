@@ -1,7 +1,7 @@
 export const wordData = {
     "verbs": [
-        {"kanji":"<ruby>行<rt>い<\/rt><\/ruby>く","type":"irv","eng":"go"},
-        {"kanji":"する","type":"irv","eng":"do, make"},
+        {"kanji":"<ruby>行<rt>い<\/rt><\/ruby>く","type":"irv","eng":"go", "group": "iku"},
+        {"kanji":"する","type":"irv","eng":"do, make", "group": "suru"},
         {"kanji":"<ruby>来<rt>く<\/rt><\/ruby>る","type":"irv","eng":"come"},
         {"kanji":"ある","type":"irv","eng":"have, exists, is (inanimate)"},
         {"kanji":"<ruby>問<rt>と<\/rt><\/ruby>う","type":"irv","eng":"ask, accuse"},
@@ -73,10 +73,9 @@ export const wordData = {
         {"kanji":"<ruby>寛<rt>くつろ<\/rt><\/ruby>ぐ","type":"u","eng":"relax, feel at home"},
         {"kanji":"<ruby>繋<rt>つな<\/rt><\/ruby>ぐ","type":"u","eng":"connect, link together"},
         {"kanji":"<ruby>分<rt>わ<\/rt><\/ruby>かる","type":"u","eng":"understand"},
-        {"kanji":"<ruby>勉<rt>べん<\/rt><\/ruby><ruby>強<rt>きょう<\/rt><\/ruby>する","type":"irv","eng":"study"},
-        {"kanji":"<ruby>運<rt>うん<\/rt><\/ruby><ruby>動<rt>どう<\/rt><\/ruby>する","type":"irv","eng":"exercise"},
+        {"kanji":"<ruby>勉<rt>べん<\/rt><\/ruby><ruby>強<rt>きょう<\/rt><\/ruby>する","type":"irv","eng":"study", "group": "suru"},
         {"kanji":"<ruby>受<rt>う<\/rt><\/ruby>け<ruby>持<rt>も<\/rt><\/ruby>つ","type":"u","eng":"take charge of"},
-        {"kanji":"<ruby>持<rt>も<\/rt><\/ruby>って<ruby>行<rt>い<\/rt><\/ruby>く","type":"irv","eng":"take, carry away"},
+        {"kanji":"<ruby>持<rt>も<\/rt><\/ruby>って<ruby>行<rt>い<\/rt><\/ruby>く","type":"irv","eng":"take, carry away", "group": "iku"},
         {"kanji":"<ruby>食<rt>た<\/rt><\/ruby>べ<ruby>歩<rt>ある<\/rt><\/ruby>く","type":"u","eng":"try food at various restaurants"}
     ],
     "adjectives": [
