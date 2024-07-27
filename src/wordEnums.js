@@ -8,4 +8,5 @@ export const CONJUGATION_TYPES = Object.freeze({
 	past: "Past",
 	te: "て-form",
 	adverb: "Adverb",
+	volitional: "Volitional",
 });

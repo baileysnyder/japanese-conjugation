@@ -154,8 +154,7 @@ span.rt {
 }
 
 #status-box {
-	/* change between inline-flex and none */
-	display: none;
+	display: inline-flex;
 	background: green;
 	border-radius: 0.91rem;
 	min-width: 66%;
@@ -264,10 +263,6 @@ span.rt {
 	width: 100%;
 }
 
-#settings-table td {
-	width: 33.33%;
-}
-
 button {
 	float: right;
 	background: rgb(63, 63, 63);
@@ -301,7 +296,6 @@ button:disabled {
 #press-any-key-text {
 	margin: 0;
 	font-size: 0.64rem;
-	display: none;
 	color: var(--whiteTextColor);
 }
 
@@ -316,7 +310,6 @@ h2 {
 #options-view {
 	padding-left: 0.73rem;
 	padding-right: 0.73rem;
-	display: none;
 }
 
 #options-form {
@@ -357,6 +350,8 @@ h2 {
 
 #options-form label {
 	padding-left: 0.25rem;
+	/* Japanese characters mess with line height - make it uniform */
+	line-height: 1.4;
 }
 
 .options-indent {
@@ -383,7 +378,7 @@ h2 {
 .hide-furigana .rt,
 .display-none,
 .hide-emojis .inquery-emoji {
-	display: none;
+	display: none !important;
 }
 
 hr {
@@ -407,7 +402,6 @@ hr {
 #donation-section {
 	margin: 0.6rem;
 	text-align: center;
-	display: none;
 }
 
 .conjugation-inquery {
