@@ -16,6 +16,7 @@ import {
 	selectCheckboxesInUi,
 	showHideOptionsAndCheckErrors,
 	insertSettingsFromUi,
+	getDefaultAdditiveSettings,
 } from "./settingManagement.js";
 import { wordData } from "./wordData.js";
 import { CONJUGATION_TYPES, PARTS_OF_SPEECH } from "./wordEnums.js";
@@ -59,6 +60,9 @@ function conjugationInqueryFormatting(conjugation) {
 		conjugation.type === CONJUGATION_TYPES.adverb
 	) {
 		newString += conjugation.type;
+	} else if (conjugation.type === CONJUGATION_TYPES.volitional) {
+		newString +=
+			'<div class="conjugation-inquery"><div class="inquery-emoji">🍻</div><div class="inquery-text">Volitional</div></div> ';
 	}
 
 	if (conjugation.affirmative === true) {
@@ -116,29 +120,35 @@ function touConjugation(affirmative, polite, conjugationType, isKanji) {
 	let firstLetter = isKanji ? "問" : "と";
 	if (conjugationType === CONJUGATION_TYPES.present) {
 		if (affirmative && polite) {
-			return firstLetter + "います";
+			return `${firstLetter}います`;
 		} else if (affirmative && !polite) {
-			return firstLetter + "う";
+			return `${firstLetter}う`;
 		} else if (!affirmative && polite) {
-			return [firstLetter + "いません", firstLetter + "わないです"];
+			return [`${firstLetter}いません`, `${firstLetter}わないです`];
 		} else if (!affirmative && !polite) {
-			return firstLetter + "わない";
+			return `${firstLetter}わない`;
 		}
 	} else if (conjugationType === CONJUGATION_TYPES.past) {
 		if (affirmative && polite) {
-			return firstLetter + "いました";
+			return `${firstLetter}いました`;
 		} else if (affirmative && !polite) {
-			return firstLetter + "うた";
+			return `${firstLetter}うた`;
 		} else if (!affirmative && polite) {
 			return [
-				firstLetter + "いませんでした",
-				firstLetter + "わなかったです",
+				`${firstLetter}いませんでした`,
+				`${firstLetter}わなかったです`,
 			];
 		} else if (!affirmative && !polite) {
-			return firstLetter + "わなかった";
+			return `${firstLetter}わなかった`;
 		}
-	} else if (conjugationType == CONJUGATION_TYPES.te) {
-		return firstLetter + "うて";
+	} else if (conjugationType === CONJUGATION_TYPES.te) {
+		return `${firstLetter}うて`;
+	} else if (conjugationType === CONJUGATION_TYPES.volitional) {
+		if (polite) {
+			return `${firstLetter}いましょう`;
+		} else {
+			return `${firstLetter}おう`;
+		}
 	}
 }
 
@@ -165,6 +175,12 @@ function aruConjugation(affirmative, polite, conjugationType) {
 		}
 	} else if (conjugationType == CONJUGATION_TYPES.te) {
 		return "あって";
+	} else if (conjugationType === CONJUGATION_TYPES.volitional) {
+		if (polite) {
+			return "ありましょう";
+		} else {
+			return "あろう";
+		}
 	}
 }
 
@@ -192,6 +208,12 @@ function kuruConjugation(affirmative, polite, conjugationType, isKanji) {
 		}
 	} else if (conjugationType === CONJUGATION_TYPES.te) {
 		retval = "きて";
+	} else if (conjugationType === CONJUGATION_TYPES.volitional) {
+		if (polite) {
+			retval = "きましょう";
+		} else {
+			retval = "こよう";
+		}
 	}
 
 	if (isKanji) {
@@ -229,6 +251,12 @@ function suruConjugation(affirmative, polite, conjugationType) {
 		}
 	} else if (conjugationType === CONJUGATION_TYPES.te) {
 		return "して";
+	} else if (conjugationType === CONJUGATION_TYPES.volitional) {
+		if (polite) {
+			return "しましょう";
+		} else {
+			return "しよう";
+		}
 	}
 }
 
@@ -236,29 +264,35 @@ function ikuConjugation(affirmative, polite, conjugationType, isKanji) {
 	let firstLetter = isKanji ? "行" : "い";
 	if (conjugationType === CONJUGATION_TYPES.present) {
 		if (affirmative && polite) {
-			return firstLetter + "きます";
+			return `${firstLetter}きます`;
 		} else if (affirmative && !polite) {
-			return firstLetter + "く";
+			return `${firstLetter}く`;
 		} else if (!affirmative && polite) {
-			return [firstLetter + "きません", firstLetter + "かないです"];
+			return [`${firstLetter}きません`, `${firstLetter}かないです`];
 		} else if (!affirmative && !polite) {
-			return firstLetter + "かない";
+			return `${firstLetter}かない`;
 		}
 	} else if (conjugationType === CONJUGATION_TYPES.past) {
 		if (affirmative && polite) {
-			return firstLetter + "きました";
+			return `${firstLetter}きました`;
 		} else if (affirmative && !polite) {
-			return firstLetter + "った";
+			return `${firstLetter}った`;
 		} else if (!affirmative && polite) {
 			return [
-				firstLetter + "きませんでした",
-				firstLetter + "かなかったです",
+				`${firstLetter}きませんでした`,
+				`${firstLetter}かなかったです`,
 			];
 		} else if (!affirmative && !polite) {
-			return firstLetter + "かなかった";
+			return `${firstLetter}かなかった`;
 		}
 	} else if (conjugationType === CONJUGATION_TYPES.te) {
-		return firstLetter + "って";
+		return `${firstLetter}って`;
+	} else if (conjugationType === CONJUGATION_TYPES.volitional) {
+		if (polite) {
+			return `${firstLetter}きましょう`;
+		} else {
+			return `${firstLetter}こう`;
+		}
 	}
 }
 
@@ -398,64 +432,96 @@ function irregularAdjectiveConjugation(
 function changeUtoI(c) {
 	if (c == "う") {
 		return "い";
-	} else if (c == "く") {
+	} else if (c === "く") {
 		return "き";
-	} else if (c == "ぐ") {
+	} else if (c === "ぐ") {
 		return "ぎ";
-	} else if (c == "す") {
+	} else if (c === "す") {
 		return "し";
-	} else if (c == "ず") {
+	} else if (c === "ず") {
 		return "じ";
-	} else if (c == "つ") {
+	} else if (c === "つ") {
 		return "ち";
-	} else if (c == "づ") {
+	} else if (c === "づ") {
 		return "ぢ";
-	} else if (c == "ぬ") {
+	} else if (c === "ぬ") {
 		return "に";
-	} else if (c == "ふ") {
+	} else if (c === "ふ") {
 		return "ひ";
-	} else if (c == "ぶ") {
+	} else if (c === "ぶ") {
 		return "び";
-	} else if (c == "ぷ") {
+	} else if (c === "ぷ") {
 		return "ぴ";
-	} else if (c == "む") {
+	} else if (c === "む") {
 		return "み";
-	} else if (c == "る") {
+	} else if (c === "る") {
 		return "り";
 	} else {
-		console.log("Input was not う in changeUtoI, was " + c);
+		console.debug("Input was not う in changeUtoI, was " + c);
 	}
 }
 
 function changeUtoA(c) {
-	if (c == "う") {
+	if (c === "う") {
 		return "わ";
-	} else if (c == "く") {
+	} else if (c === "く") {
 		return "か";
-	} else if (c == "ぐ") {
+	} else if (c === "ぐ") {
 		return "が";
-	} else if (c == "す") {
+	} else if (c === "す") {
 		return "さ";
-	} else if (c == "ず") {
+	} else if (c === "ず") {
 		return "ざ";
-	} else if (c == "つ") {
+	} else if (c === "つ") {
 		return "た";
-	} else if (c == "づ") {
+	} else if (c === "づ") {
 		return "だ";
-	} else if (c == "ぬ") {
+	} else if (c === "ぬ") {
 		return "な";
-	} else if (c == "ふ") {
+	} else if (c === "ふ") {
 		return "は";
-	} else if (c == "ぶ") {
+	} else if (c === "ぶ") {
 		return "ば";
-	} else if (c == "ぷ") {
+	} else if (c === "ぷ") {
 		return "ぱ";
-	} else if (c == "む") {
+	} else if (c === "む") {
 		return "ま";
-	} else if (c == "る") {
+	} else if (c === "る") {
 		return "ら";
 	} else {
-		console.log("Input was not う in changeUtoA, was " + c);
+		console.debug("Input was not う in changeUtoA, was " + c);
+	}
+}
+
+function changeUtoO(c) {
+	if (c === "う") {
+		return "お";
+	} else if (c === "く") {
+		return "こ";
+	} else if (c === "ぐ") {
+		return "ご";
+	} else if (c === "す") {
+		return "そ";
+	} else if (c === "ず") {
+		return "ぞ";
+	} else if (c === "つ") {
+		return "と";
+	} else if (c === "づ") {
+		return "ど";
+	} else if (c === "ぬ") {
+		return "の";
+	} else if (c === "ふ") {
+		return "ほ";
+	} else if (c === "ぶ") {
+		return "ぼ";
+	} else if (c === "ぷ") {
+		return "ぽ";
+	} else if (c === "む") {
+		return "も";
+	} else if (c === "る") {
+		return "ろ";
+	} else {
+		console.debug("Input was not う in changeUtoO, was " + c);
 	}
 }
 
@@ -471,15 +537,20 @@ function changeToPastPlain(c) {
 	} else if (c == "る" || c == "う" || c == "つ") {
 		return "った";
 	} else {
-		console.log("Input was not real verb ending changeToPastPlain, was " + c);
+		console.debug(
+			"Input was not real verb ending changeToPastPlain, was " + c
+		);
 	}
 }
 
-function masuStem(hiraganaVerb, type) {
+/**
+ * る is dropped for ichidan, う goes to い for godan
+ */
+function masuStem(baseVerbText, type) {
 	return type == "u"
-		? hiraganaVerb.substring(0, hiraganaVerb.length - 1) +
-				changeUtoI(hiraganaVerb.charAt(hiraganaVerb.length - 1))
-		: hiraganaVerb.substring(0, hiraganaVerb.length - 1);
+		? baseVerbText.substring(0, baseVerbText.length - 1) +
+				changeUtoI(baseVerbText.charAt(baseVerbText.length - 1))
+		: baseVerbText.substring(0, baseVerbText.length - 1);
 }
 
 // used by present plain negative and past plain negative
@@ -585,6 +656,35 @@ const conjugationFunctions = {
 				}
 			} else if (type == "ru") {
 				return masuStem(baseVerbText, type) + "て";
+			}
+		},
+		// Volitional does not distinguish between affirmative and negative,
+		// but take it in as a param so this function's structure matches the other conjugation functions
+		[CONJUGATION_TYPES.volitional]: function (
+			baseVerbText,
+			type,
+			affirmative,
+			polite
+		) {
+			if (type === "irv") {
+				return irregularVerbConjugation(
+					baseVerbText,
+					false,
+					polite,
+					CONJUGATION_TYPES.volitional
+				);
+			} else if (polite) {
+				return masuStem(baseVerbText, type) + "ましょう";
+			} else if (!polite) {
+				if (type === "u") {
+					return (
+						dropFinalLetter(baseVerbText) +
+						changeUtoO(baseVerbText.charAt(baseVerbText.length - 1)) +
+						"う"
+					);
+				} else if (type === "ru") {
+					return masuStem(baseVerbText, type) + "よう";
+				}
 			}
 		},
 	},
@@ -831,6 +931,19 @@ function getAllConjugations(wordJSON) {
 				null
 			)
 		);
+		// Add volitional
+		[true, false].forEach((polite) => {
+			allConjugations.push(
+				getConjugation(
+					wordJSON,
+					partOfSpeech,
+					CONJUGATION_TYPES.volitional,
+					validBaseWordSpellings,
+					null,
+					polite
+				)
+			);
+		});
 	} else if (partOfSpeech === PARTS_OF_SPEECH.adjective) {
 		// Add adverb
 		allConjugations.push(
@@ -980,9 +1093,10 @@ function updateProbabilites(
 			})
 			.forEach((word) => {
 				// Have to be careful with lowering this too much, because it can affect findMinProb for other conjugations.
+				// Also, lowering it by a lot will make all of these words appear in a cluster after all the other words have been seen.
 				// Note that this is happening whether currentWordWasCorrect is true or false,
 				// so if someone got currentWord wrong many times it would tank the probabilities in this forEach over time.
-				word.probability /= 4;
+				word.probability /= 3;
 			});
 	}
 
@@ -1060,7 +1174,7 @@ function pickRandomWord(wordList) {
 		}
 		throw "no random word chosen";
 	} catch (err) {
-		console.log(err);
+		console.error(err);
 		return wordList[0][0];
 	}
 }
@@ -1116,7 +1230,7 @@ function typeToWordBoxColor(type) {
 
 function updateStatusBoxes(word, entryText) {
 	let statusBox = document.getElementById("status-box");
-	statusBox.style.display = "inline-flex";
+	toggleDisplayNone(statusBox, false);
 
 	if (word.conjugation.validAnswers.some((e) => e == entryText)) {
 		statusBox.style.background = "green";
@@ -1218,8 +1332,8 @@ class ConjugationApp {
 			.getElementById("input-tooltip")
 			.classList.remove("tooltip-fade-animation");
 
-		document.getElementById("press-any-key-text").style.display = "none";
-		document.getElementById("status-box").style.display = "none";
+		toggleDisplayNone(document.getElementById("press-any-key-text"), true);
+		toggleDisplayNone(document.getElementById("status-box"), true);
 
 		if (this.state.currentStreak0OnReset) {
 			document.getElementById("current-streak-text").textContent = "0";
@@ -1321,8 +1435,10 @@ class ConjugationApp {
 			this.state.loadWordOnReset = true;
 
 			document.getElementsByTagName("input")[0].disabled = true;
-			document.getElementById("press-any-key-text").style.display =
-				"table-cell";
+			toggleDisplayNone(
+				document.getElementById("press-any-key-text"),
+				false
+			);
 
 			inputEl.value = "";
 		}
@@ -1334,9 +1450,9 @@ class ConjugationApp {
 		selectCheckboxesInUi(this.state.settings);
 		showHideOptionsAndCheckErrors();
 
-		document.getElementById("main-view").style.display = "none";
-		document.getElementById("options-view").style.display = "block";
-		document.getElementById("donation-section").style.display = "block";
+		toggleDisplayNone(document.getElementById("main-view"), true);
+		toggleDisplayNone(document.getElementById("options-view"), false);
+		toggleDisplayNone(document.getElementById("donation-section"), false);
 	}
 
 	backButtonClicked(e) {
@@ -1384,16 +1500,20 @@ class ConjugationApp {
 
 		this.loadMainView();
 
-		document.getElementById("main-view").style.display = "block";
-		document.getElementById("options-view").style.display = "none";
-		document.getElementById("donation-section").style.display = "none";
+		toggleDisplayNone(document.getElementById("main-view"), false);
+		toggleDisplayNone(document.getElementById("options-view"), true);
+		toggleDisplayNone(document.getElementById("donation-section"), true);
 	}
 
 	initState(words) {
 		this.state = {};
 		this.state.completeWordList = createWordList(words);
 
-		if (!localStorage.getItem("maxScoreIndex")) {
+		if (
+			!localStorage.getItem("maxScoreObjects") ||
+			!localStorage.getItem("maxScoreIndex") ||
+			!localStorage.getItem("settings")
+		) {
 			this.state.maxScoreIndex = 0;
 			localStorage.setItem("maxScoreIndex", this.state.maxScoreIndex);
 
@@ -1415,7 +1535,7 @@ class ConjugationApp {
 				localStorage.getItem("maxScoreIndex")
 			);
 			this.state.settings = Object.assign(
-				getDefaultSettings(),
+				getDefaultAdditiveSettings(),
 				JSON.parse(localStorage.getItem("settings"))
 			);
 			this.state.maxScoreObjects = JSON.parse(

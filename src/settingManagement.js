@@ -26,6 +26,10 @@ export function removeNonConjugationSettings(settings) {
 	return prunedSettings;
 }
 
+/**
+ * The settings that should be set for new users
+ * @returns {Object} settings
+ */
 export const getDefaultSettings = () => {
 	let inputs = document
 		.getElementById("options-form")
@@ -42,9 +46,37 @@ export const getDefaultSettings = () => {
 	return settings;
 };
 
+/**
+ * The settings that should be added to a returning user's settings object
+ * @returns {Object} settings
+ */
+export const getDefaultAdditiveSettings = () => {
+	const settings = {};
+
+	const nonConjugationInputs = document
+		.getElementById("non-conjugation-settings")
+		.querySelectorAll('[type="checkbox"]');
+	for (let input of Array.from(nonConjugationInputs)) {
+		settings[input.name] = true;
+	}
+
+	// Set input radio values
+	settings["translationTiming"] = CONDITIONAL_UI_TIMINGS.always;
+	settings["furiganaTiming"] = CONDITIONAL_UI_TIMINGS.always;
+
+	const conjugationInputs = document
+		.getElementById("conjugation-settings")
+		.querySelectorAll('[type="checkbox"]');
+	for (let input of Array.from(conjugationInputs)) {
+		settings[input.name] = false;
+	}
+
+	return settings;
+};
+
 export function optionsMenuInit() {
-	let optionsGroups = document.getElementsByClassName("options-group");
-	for (let optionGroup of Array.from(optionsGroups)) {
+	const optionsGroups = document.getElementsByClassName("options-group");
+	for (const optionGroup of Array.from(optionsGroups)) {
 		// Note that this registers a listener for a click anywhere in the
 		// options-group element (not just the checkboxes).
 		optionGroup.addEventListener("click", (e) =>
@@ -52,17 +84,22 @@ export function optionsMenuInit() {
 		);
 	}
 
-	let verbInputsWithVariations = document.getElementsByClassName(
+	const verbInputsWithVariations = document.getElementsByClassName(
 		"verb-has-variations"
 	);
-	for (let input of Array.from(verbInputsWithVariations)) {
+	const verbInputsWithPolitenessOnly = document.getElementsByClassName(
+		"verb-has-politeness"
+	);
+	for (const input of Array.from(verbInputsWithVariations).concat(
+		Array.from(verbInputsWithPolitenessOnly)
+	)) {
 		input.addEventListener("click", showHideVerbVariationOptions);
 	}
 
-	let adjectiveInputsWithVariations = document.getElementsByClassName(
+	const adjectiveInputsWithVariations = document.getElementsByClassName(
 		"adjective-has-variations"
 	);
-	for (let input of Array.from(adjectiveInputsWithVariations)) {
+	for (const input of Array.from(adjectiveInputsWithVariations)) {
 		input.addEventListener("click", showHideAdjectiveVariationOptions);
 	}
 
@@ -81,7 +118,7 @@ export function optionsMenuInit() {
 		.addEventListener("click", verbAndAdjCheckError);
 
 	// top level errors
-	let optionsView = document.getElementById("options-view");
+	const optionsView = document.getElementById("options-view");
 	optionsView.addEventListener("click", verbPresAffPlainCheckError);
 	optionsView.addEventListener("click", adjPresAffPlainCheckError);
 }
@@ -258,44 +295,57 @@ function adjPresAffPlainCheckError() {
 	}
 }
 
-// In this context the options Affirmative, Negative, Plain, and Polite
-// are considered "variations" on other conjugation types.
-// Not all types (like て for verbs, adverbs for adjectives) have variations.
-function showHideConjugationVariationOptions(
-	inputWithVariationsClass,
-	variationsContainerId
-) {
-	let inputsWithVariations = document.getElementsByClassName(
-		inputWithVariationsClass
+/**
+ * Shows or hides UI options based on the values of checkboxes.
+ *
+ * @param {string} triggeringInputsClass - The class that's been put on inputs that trigger this show/hide
+ * @param {string} showHideContainerId - The container to show/hide. Should either be an element with an "options-group" class, or be an element that contains other "options-group" elements
+ * @returns {boolean} - true if the options were shown, false if hidden
+ */
+function showHideUiOptions(triggeringInputsClass, showHideContainerId) {
+	const inputsThatTrigger = document.getElementsByClassName(
+		triggeringInputsClass
 	);
-	let variationsContainer = document.getElementById(variationsContainerId);
+	const showHideContainer = document.getElementById(showHideContainerId);
+	// Check if showHideContainer is an options-group itself, or if it contains options-group elements
+	const optionGroups = showHideContainer.classList.contains("options-group")
+		? [showHideContainer]
+		: showHideContainer.getElementsByClassName("options-group");
 
-	for (let input of Array.from(inputsWithVariations)) {
+	for (const input of Array.from(inputsThatTrigger)) {
 		if (input.checked) {
-			let optionGroups =
-				variationsContainer.getElementsByClassName("options-group");
-			for (let optionGroup of Array.from(optionGroups)) {
+			for (const optionGroup of Array.from(optionGroups)) {
 				optionsGroupCheckError(optionGroup);
+				toggleDisplayNone(optionGroup, false);
 			}
 
-			toggleDisplayNone(variationsContainer, false);
-			return;
+			return true;
 		}
 	}
 
-	// If no conjugations with variations were selected, hide the variation options.
-	toggleDisplayNone(variationsContainer, true);
+	for (const optionGroup of Array.from(optionGroups)) {
+		toggleDisplayNone(optionGroup, true);
+	}
+	return false;
 }
 
+// In this context the options Affirmative, Negative, Plain, and Polite
+// are considered "variations" on other conjugation types.
+// Not all types (like て for verbs, adverbs for adjectives) have variations.
 function showHideVerbVariationOptions() {
-	showHideConjugationVariationOptions(
+	// First try to show/hide all variation options
+	const showingAllVariations = showHideUiOptions(
 		"verb-has-variations",
 		"verb-variations-container"
 	);
-}
 
+	// If all variations aren't shown, see if just politeness options should be shown
+	if (!showingAllVariations) {
+		showHideUiOptions("verb-has-politeness", "verb-politeness-container");
+	}
+}
 function showHideAdjectiveVariationOptions() {
-	showHideConjugationVariationOptions(
+	showHideUiOptions(
 		"adjective-has-variations",
 		"adjective-variations-container"
 	);
@@ -378,6 +428,9 @@ const questionRemoveFilters = {
 		},
 		verbte: function (word) {
 			return word.conjugation.type !== CONJUGATION_TYPES.te;
+		},
+		verbvolitional: function (word) {
+			return word.conjugation.type !== CONJUGATION_TYPES.volitional;
 		},
 
 		verbaffirmative: function (word) {
