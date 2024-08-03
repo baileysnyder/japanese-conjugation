@@ -9,4 +9,8 @@ export const CONJUGATION_TYPES = Object.freeze({
 	te: "て-form",
 	adverb: "Adverb",
 	volitional: "Volitional",
+	passive: "Passive",
+	causative: "Causative",
+	potential: "Potential",
+	imperative: "Imperative",
 });

@@ -31,12 +31,21 @@ export function removeNonConjugationSettings(settings) {
  * @returns {Object} settings
  */
 export const getDefaultSettings = () => {
-	let inputs = document
+	// First set all checkboxes to true
+	const inputs = document
 		.getElementById("options-form")
 		.querySelectorAll('[type="checkbox"]');
-	let settings = {};
-	for (let x of Array.from(inputs)) {
-		settings[x.name] = true;
+	const settings = {};
+	for (const input of Array.from(inputs)) {
+		settings[input.name] = true;
+	}
+
+	// Set any advanced conjugation checkboxes to false
+	const advancedInputs = document
+		.getElementById("options-form")
+		.querySelectorAll('.advanced-section [type="checkbox"]');
+	for (const input of Array.from(advancedInputs)) {
+		settings[input.name] = false;
 	}
 
 	// Set input radio values
@@ -431,6 +440,18 @@ const questionRemoveFilters = {
 		},
 		verbvolitional: function (word) {
 			return word.conjugation.type !== CONJUGATION_TYPES.volitional;
+		},
+		verbpassive: function (word) {
+			return word.conjugation.type !== CONJUGATION_TYPES.passive;
+		},
+		verbcausative: function (word) {
+			return word.conjugation.type !== CONJUGATION_TYPES.causative;
+		},
+		verbpotential: function (word) {
+			return word.conjugation.type !== CONJUGATION_TYPES.potential;
+		},
+		verbimperative: function (word) {
+			return word.conjugation.type !== CONJUGATION_TYPES.imperative;
 		},
 
 		verbaffirmative: function (word) {

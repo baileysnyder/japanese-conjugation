@@ -1,6 +1,6 @@
 html {
 	font-family: "Open Sans", "Arial", sans-serif;
-	font-size: 16px;
+	font-size: 17px;
 }
 
 body {
@@ -15,6 +15,7 @@ h1 {
 	font-size: 1.1rem;
 	margin-bottom: 0;
 	margin-top: 0.6rem;
+	display: none;
 }
 
 p {
@@ -33,7 +34,7 @@ input {
 .streak p {
 	margin: 0;
 	margin-bottom: 0;
-	font-size: 0.7rem;
+	font-size: 0.65rem;
 }
 
 #current-streak {
@@ -417,6 +418,45 @@ hr {
 	line-height: 1.1;
 }
 
+.advanced-section {
+	padding-left: 0.3rem;
+	padding-right: 0.4rem;
+	padding-top: 0.2rem;
+	padding-bottom: 0.2rem;
+	margin-left: -0.14rem;
+	/* background: #333230; */
+	border-radius: 10px;
+	max-width: fit-content;
+	box-shadow: 0 0.045rem #232323, 0.045rem 0 #232323, 0.09rem 0.045rem #232323,
+		0.045rem 0.09rem #232323, 0.136rem 0.09rem #232323,
+		0.09rem 0.136rem #232323;
+	margin-bottom: 0.5rem;
+	margin-top: 0.1rem;
+	border: 2px solid #424242;
+}
+.advanced-option {
+	margin-bottom: 0.2rem;
+}
+
+#advanced-text {
+	font-size: 0.7em;
+	font-weight: 600;
+	padding-left: 0.2rem;
+	font-style: italic;
+	margin-bottom: 0.2rem;
+	color: #818181;
+	/* border-bottom: 2px solid #424242; */
+	display: flex;
+	align-items: center;
+}
+
+.inline-hr {
+	display: inline-block;
+	width: 100%;
+	height: 0;
+	border-style: dashed;
+}
+
 @media screen and (min-width: 510px) {
 	html {
 		font-size: 18px;
@@ -431,6 +471,7 @@ hr {
 		font-size: 1.4rem;
 		margin-bottom: 0.9rem;
 		margin-top: 0.9rem;
+		display: block;
 	}
 	#input-container {
 		margin-bottom: 0.4rem;

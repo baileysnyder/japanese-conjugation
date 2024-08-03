@@ -6,7 +6,6 @@ export const wordData = {
         {"kanji":"ある","type":"irv","eng":"have, exists, is (inanimate)"},
         {"kanji":"<ruby>問<rt>と<\/rt><\/ruby>う","type":"irv","eng":"ask, accuse"},
         {"kanji":"いる","type":"ru","eng":"exists, is (living things)"},
-        {"kanji":"<ruby>出<rt>で<\/rt><\/ruby><ruby>来<rt>き<\/rt><\/ruby>る","type":"ru","eng":"able, can do"},
         {"kanji":"<ruby>始<rt>はじ<\/rt><\/ruby>める","type":"ru","eng":"begin"},
         {"kanji":"<ruby>借<rt>か<\/rt><\/ruby>りる","type":"ru","eng":"borrow, rent"},
         {"kanji":"<ruby>続<rt>つづ<\/rt><\/ruby>ける","type":"ru","eng":"continue, proceed"},
