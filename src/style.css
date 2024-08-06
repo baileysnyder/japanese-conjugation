@@ -423,13 +423,10 @@ hr {
 	padding-right: 0.4rem;
 	padding-top: 0.2rem;
 	padding-bottom: 0.2rem;
-	margin-left: -0.14rem;
-	/* background: #333230; */
+	margin-left: -0.22rem;
 	border-radius: 10px;
 	max-width: fit-content;
-	box-shadow: 0 0.045rem #232323, 0.045rem 0 #232323, 0.09rem 0.045rem #232323,
-		0.045rem 0.09rem #232323, 0.136rem 0.09rem #232323,
-		0.09rem 0.136rem #232323;
+	box-shadow: 0.14rem 0.1rem 5px #232323, 0.1rem 0.14rem 5px #232323;
 	margin-bottom: 0.5rem;
 	margin-top: 0.1rem;
 	border: 2px solid #424242;
@@ -444,7 +441,7 @@ hr {
 	padding-left: 0.2rem;
 	font-style: italic;
 	margin-bottom: 0.2rem;
-	color: #818181;
+	color: #6e6e6e;
 	/* border-bottom: 2px solid #424242; */
 	display: flex;
 	align-items: center;

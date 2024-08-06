@@ -100,9 +100,6 @@ function changeVerbBoxFontColor(color) {
 function loadNewWord(wordList) {
 	let word = pickRandomWord(wordList);
 	updateCurrentWord(word);
-	if (!isTouch) {
-		document.getElementsByTagName("input")[0].focus();
-	}
 	changeVerbBoxFontColor("rgb(232, 232, 232)");
 	return word;
 }
@@ -159,7 +156,8 @@ function touConjugation(affirmative, polite, conjugationType, isKanji) {
 	} else if (
 		conjugationType === CONJUGATION_TYPES.passive ||
 		conjugationType === CONJUGATION_TYPES.causative ||
-		conjugationType === CONJUGATION_TYPES.potential
+		conjugationType === CONJUGATION_TYPES.potential ||
+		conjugationType === CONJUGATION_TYPES.imperative
 	) {
 		return conjugationFunctions.verb[conjugationType](
 			plainForm,
@@ -201,7 +199,8 @@ function aruConjugation(affirmative, polite, conjugationType) {
 		}
 	} else if (
 		conjugationType === CONJUGATION_TYPES.passive ||
-		conjugationType === CONJUGATION_TYPES.causative
+		conjugationType === CONJUGATION_TYPES.causative ||
+		conjugationType === CONJUGATION_TYPES.imperative
 	) {
 		return conjugationFunctions.verb[conjugationType](
 			"ある",
@@ -263,6 +262,8 @@ function kuruConjugation(affirmative, polite, conjugationType, isKanji) {
 			affirmative,
 			polite
 		);
+	} else if (conjugationType === CONJUGATION_TYPES.imperative) {
+		retval = "こい"
 	}
 
 	if (isKanji) {
@@ -338,6 +339,8 @@ function suruConjugation(affirmative, polite, conjugationType) {
 		} else if (!affirmative && !polite) {
 			return ["できない", "出来ない"];
 		}
+	} else if (conjugationType === CONJUGATION_TYPES.imperative) {
+		return ["しろ", "せよ"]
 	}
 }
 
@@ -378,7 +381,8 @@ function ikuConjugation(affirmative, polite, conjugationType, isKanji) {
 	} else if (
 		conjugationType === CONJUGATION_TYPES.passive ||
 		conjugationType === CONJUGATION_TYPES.causative ||
-		conjugationType === CONJUGATION_TYPES.potential
+		conjugationType === CONJUGATION_TYPES.potential ||
+		conjugationType === CONJUGATION_TYPES.imperative
 	) {
 		return conjugationFunctions.verb[conjugationType](
 			plainForm,
@@ -906,6 +910,28 @@ const conjugationFunctions = {
 				return roots.map((r) => r + "ない");
 			}
 		},
+		[CONJUGATION_TYPES.imperative]: function (
+			baseVerbText,
+			type
+		) {
+			if (type === "irv") {
+				return irregularVerbConjugation(
+					baseVerbText,
+					null,
+					null,
+					CONJUGATION_TYPES.imperative
+				);
+			}
+
+			if (type === "ru") {
+				return [dropFinalLetter(baseVerbText) + "ろ", dropFinalLetter(baseVerbText) + "よ"]
+			}
+
+			if (type === "u") {
+				return dropFinalLetter(baseVerbText) +
+				changeUtoE(baseVerbText.charAt(baseVerbText.length - 1))
+			}
+		}
 	},
 
 	[PARTS_OF_SPEECH.adjective]: {
@@ -1147,7 +1173,7 @@ function getAllConjugations(wordJSON) {
 	});
 
 	if (partOfSpeech === PARTS_OF_SPEECH.verb) {
-		// Add te
+		// te
 		allConjugations.push(
 			getConjugation(
 				wordJSON,
@@ -1158,7 +1184,7 @@ function getAllConjugations(wordJSON) {
 				null
 			)
 		);
-		// Add volitional
+		// volitional
 		[true, false].forEach((polite) => {
 			allConjugations.push(
 				getConjugation(
@@ -1171,6 +1197,17 @@ function getAllConjugations(wordJSON) {
 				)
 			);
 		});
+		// imperative
+		allConjugations.push(
+			getConjugation(
+				wordJSON,
+				partOfSpeech,
+				CONJUGATION_TYPES.imperative,
+				validBaseWordSpellings,
+				null,
+				null
+			)
+		);
 	} else if (partOfSpeech === PARTS_OF_SPEECH.adjective) {
 		// Add adverb
 		allConjugations.push(
@@ -1498,13 +1535,12 @@ function initApp() {
 
 class ConjugationApp {
 	constructor(words) {
-		let input = document.getElementsByTagName("input")[0];
-		bind(input);
+		const mainInput = document.getElementById("main-text-input");
+		bind(mainInput);
 
 		this.initState(words);
 
-		document
-			.getElementsByTagName("input")[0]
+		mainInput
 			.addEventListener("keydown", (e) => this.inputKeyPress(e));
 		document
 			.getElementById("options-button")
@@ -1553,8 +1589,6 @@ class ConjugationApp {
 	loadMainView() {
 		this.state.activeScreen = SCREENS.question;
 
-		document.getElementsByTagName("input")[0].disabled = false;
-		document.getElementsByTagName("input")[0].value = "";
 		document
 			.getElementById("input-tooltip")
 			.classList.remove("tooltip-fade-animation");
@@ -1583,6 +1617,13 @@ class ConjugationApp {
 			this.state.settings.translationTiming ===
 				CONDITIONAL_UI_TIMINGS.onlyAfterAnswering
 		);
+
+		const mainInput = document.getElementById("main-text-input");
+		mainInput.disabled = false;
+		mainInput.value = "";
+		if (!isTouch) {
+			mainInput.focus();
+		}
 	}
 
 	// Handle generic keydown events that aren't targeting a specific element
@@ -1606,12 +1647,12 @@ class ConjugationApp {
 	inputKeyPress(e) {
 		let keyCode = e.keyCode ? e.keyCode : e.which;
 		if (keyCode == "13") {
+			e.stopPropagation();
 			this.state.activeScreen = SCREENS.results;
 
-			let inputEl = document.getElementsByTagName("input")[0];
-			e.stopPropagation();
+			const mainInput = document.getElementById("main-text-input");
+			const inputValue = mainInput.value;
 
-			let inputValue = inputEl.value;
 			const finalChar = inputValue[inputValue.length - 1];
 			switch (finalChar) {
 				// Set hanging n to ん
@@ -1634,7 +1675,7 @@ class ConjugationApp {
 					.classList.remove("tooltip-fade-animation");
 			}
 
-			inputEl.blur();
+			mainInput.blur();
 			updateStatusBoxes(this.state.currentWord, inputValue);
 			// If the furigana or translation were made transparent during the question, make them visible now
 			showFurigana(this.state.settings.furigana, false);
@@ -1661,13 +1702,13 @@ class ConjugationApp {
 			}
 			this.state.loadWordOnReset = true;
 
-			document.getElementsByTagName("input")[0].disabled = true;
+			mainInput.disabled = true;
 			toggleDisplayNone(
 				document.getElementById("press-any-key-text"),
 				false
 			);
 
-			inputEl.value = "";
+			mainInput.value = "";
 		}
 	}
 
@@ -1725,11 +1766,11 @@ class ConjugationApp {
 		document.getElementById("max-streak-text").textContent =
 			this.state.maxScoreObjects[this.state.maxScoreIndex].score;
 
-		this.loadMainView();
-
 		toggleDisplayNone(document.getElementById("main-view"), false);
 		toggleDisplayNone(document.getElementById("options-view"), true);
 		toggleDisplayNone(document.getElementById("donation-section"), true);
+
+		this.loadMainView();
 	}
 
 	initState(words) {
@@ -1794,5 +1835,9 @@ class ConjugationApp {
 }
 
 initApp();
+
 // Keeping the top container hidden at the beginning prevents 1 frame of malformed UI being shown
 toggleDisplayNone(document.getElementById("toppest-container"), false);
+if (!isTouch) {
+	document.getElementById("main-text-input").focus();
+}
