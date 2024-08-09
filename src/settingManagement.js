@@ -73,6 +73,7 @@ export const getDefaultAdditiveSettings = () => {
 	settings["translationTiming"] = CONDITIONAL_UI_TIMINGS.always;
 	settings["furiganaTiming"] = CONDITIONAL_UI_TIMINGS.always;
 
+	// All conjugation settings (including advanced options) are added as false
 	const conjugationInputs = document
 		.getElementById("conjugation-settings")
 		.querySelectorAll('[type="checkbox"]');

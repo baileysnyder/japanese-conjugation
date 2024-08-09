@@ -75,9 +75,9 @@ function conjugationInqueryFormatting(conjugation) {
 		newString += createInqueryText(CONJUGATION_TYPES.imperative, "📢");
 	}
 
-	if (conjugation.affirmative === true) {
-		newString += createInqueryText("Affirmative", "✅");
-	} else if (conjugation.affirmative === false) {
+	// This used to also add "Affirmative" text when affirmative was true, but it was a little redundant.
+	// Now it only adds "Negative" text when affirmative is false.
+	if (conjugation.affirmative === false) {
 		newString += createInqueryText("Negative", "🚫");
 	}
 
@@ -209,9 +209,12 @@ function aruConjugation(affirmative, polite, conjugationType) {
 			polite
 		);
 	} else if (conjugationType === CONJUGATION_TYPES.potential) {
+		// あれる seems to technically be valid but never used.
+		// This leaves あれる out of the answer array so people don't enter あれる without ever seeing that ありえる is the common approach.
 		if (affirmative && polite) {
 			return ["ありえます", "あり得ます"];
 		} else if (affirmative && !polite) {
+			// ありうる is only used for the plain form
 			return ["ありえる", "あり得る", "ありうる"];
 		} else if (!affirmative && polite) {
 			return ["ありえません", "あり得ません"];
@@ -263,7 +266,7 @@ function kuruConjugation(affirmative, polite, conjugationType, isKanji) {
 			polite
 		);
 	} else if (conjugationType === CONJUGATION_TYPES.imperative) {
-		retval = "こい"
+		retval = "こい";
 	}
 
 	if (isKanji) {
@@ -340,7 +343,7 @@ function suruConjugation(affirmative, polite, conjugationType) {
 			return ["できない", "出来ない"];
 		}
 	} else if (conjugationType === CONJUGATION_TYPES.imperative) {
-		return ["しろ", "せよ"]
+		return ["しろ", "せよ"];
 	}
 }
 
@@ -822,9 +825,6 @@ const conjugationFunctions = {
 			affirmative,
 			polite
 		) {
-			const verbEndingWithA =
-				dropFinalLetter(baseVerbText) +
-				changeUtoA(baseVerbText.charAt(baseVerbText.length - 1));
 			if (type === "irv") {
 				return irregularVerbConjugation(
 					baseVerbText,
@@ -832,7 +832,13 @@ const conjugationFunctions = {
 					polite,
 					CONJUGATION_TYPES.passive
 				);
-			} else if (affirmative && polite) {
+			}
+
+			const verbEndingWithA =
+				dropFinalLetter(baseVerbText) +
+				changeUtoA(baseVerbText.charAt(baseVerbText.length - 1));
+
+			if (affirmative && polite) {
 				return verbEndingWithA + "れます";
 			} else if (affirmative && !polite) {
 				return verbEndingWithA + "れる";
@@ -848,6 +854,15 @@ const conjugationFunctions = {
 			affirmative,
 			polite
 		) {
+			if (type === "irv") {
+				return irregularVerbConjugation(
+					baseVerbText,
+					affirmative,
+					polite,
+					CONJUGATION_TYPES.causative
+				);
+			}
+
 			let verbCausativeRoot;
 			if (type === "ru") {
 				verbCausativeRoot = dropFinalLetter(baseVerbText) + "さ";
@@ -857,14 +872,7 @@ const conjugationFunctions = {
 					changeUtoA(baseVerbText.charAt(baseVerbText.length - 1));
 			}
 
-			if (type === "irv") {
-				return irregularVerbConjugation(
-					baseVerbText,
-					affirmative,
-					polite,
-					CONJUGATION_TYPES.causative
-				);
-			} else if (affirmative && polite) {
+			if (affirmative && polite) {
 				return verbCausativeRoot + "せます";
 			} else if (affirmative && !polite) {
 				return verbCausativeRoot + "せる";
@@ -896,6 +904,8 @@ const conjugationFunctions = {
 						changeUtoE(baseVerbText.charAt(baseVerbText.length - 1))
 				);
 			} else if (type === "ru") {
+				// The default spelling should be the dictionary correct "られる",
+				// but also allow the common shortened version "れる".
 				roots.push(dropFinalLetter(baseVerbText) + "られ");
 				roots.push(dropFinalLetter(baseVerbText) + "れ");
 			}
@@ -910,10 +920,7 @@ const conjugationFunctions = {
 				return roots.map((r) => r + "ない");
 			}
 		},
-		[CONJUGATION_TYPES.imperative]: function (
-			baseVerbText,
-			type
-		) {
+		[CONJUGATION_TYPES.imperative]: function (baseVerbText, type) {
 			if (type === "irv") {
 				return irregularVerbConjugation(
 					baseVerbText,
@@ -924,14 +931,20 @@ const conjugationFunctions = {
 			}
 
 			if (type === "ru") {
-				return [dropFinalLetter(baseVerbText) + "ろ", dropFinalLetter(baseVerbText) + "よ"]
+				return [
+					dropFinalLetter(baseVerbText) + "ろ",
+					// よ seems to be used as an ending only in written Japanese, but still allow it
+					dropFinalLetter(baseVerbText) + "よ",
+				];
 			}
 
 			if (type === "u") {
-				return dropFinalLetter(baseVerbText) +
-				changeUtoE(baseVerbText.charAt(baseVerbText.length - 1))
+				return (
+					dropFinalLetter(baseVerbText) +
+					changeUtoE(baseVerbText.charAt(baseVerbText.length - 1))
+				);
 			}
-		}
+		},
 	},
 
 	[PARTS_OF_SPEECH.adjective]: {
@@ -1540,8 +1553,7 @@ class ConjugationApp {
 
 		this.initState(words);
 
-		mainInput
-			.addEventListener("keydown", (e) => this.inputKeyPress(e));
+		mainInput.addEventListener("keydown", (e) => this.inputKeyPress(e));
 		document
 			.getElementById("options-button")
 			.addEventListener("click", (e) => this.settingsButtonClicked(e));
