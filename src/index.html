@@ -1,13 +1,19 @@
 <!doctype html>
-<html>
+<html lang="en">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Japanese Conjugation Practice</title>
-        <meta name="description" content="Learn how to conjugate Japanese verbs and adjectives! Includes present tense, past tense, te form, and adverbs.">
+        <meta name="description" content="Learn how to conjugate Japanese verbs and adjectives! Includes many forms: past tense, te form, passive, causative, potential, and more.">
+        <meta property="og:title" content="Japanese Conjugation Practice">
+        <meta property="og:description" content="Learn how to conjugate Japanese verbs and adjectives!">
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="./streamlined_screenshot.png">
         <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans">
         <link rel="stylesheet" href="style.css">
-        <link rel="icon" href="https://baileysnyder.com/favicon.png">
+        <link rel="icon" href="./favicon.ico">
+        <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+        <link rel="manifest" href="./site.webmanifest">
         <script type="module" defer src="main.js"></script>
     </head>
     <body>
@@ -42,7 +48,7 @@
                     </div>
                     <div id="input-container">
                         <div id="input-tooltip" class="tooltip">Invalid characters. Only Japanese kana and kanji are valid.</div>
-                        <input id="main-text-input" type="text" maxlength="30">
+                        <input id="main-text-input" type="text" maxlength="30" aria-label="Answer">
                     </div>
                     <div id="settings-container">
                         <div id="settings-child-container">

@@ -1663,7 +1663,7 @@ class ConjugationApp {
 			this.state.activeScreen = SCREENS.results;
 
 			const mainInput = document.getElementById("main-text-input");
-			const inputValue = mainInput.value;
+			let inputValue = mainInput.value;
 
 			const finalChar = inputValue[inputValue.length - 1];
 			switch (finalChar) {

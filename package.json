@@ -1,11 +1,15 @@
 {
-  "dependencies": {
-    "parcel": "^2.8.2",
-    "wanakana": "^5.0.2"
-  },
-  "source": "src/index.html",
-  "scripts": {
-    "dev": "parcel --dist-dir ./hot-reload-temp",
-    "build": "parcel build --dist-dir ./dist --no-source-maps --public-url ./"
-  }
+	"dependencies": {
+		"wanakana": "^5.0.2"
+	},
+	"devDependencies": {
+		"@parcel/packager-raw-url": "^2.12.0",
+		"@parcel/transformer-webmanifest": "^2.12.0",
+		"parcel": "^2.12.0"
+	},
+	"source": "src/index.html",
+	"scripts": {
+		"dev": "parcel --dist-dir ./hot-reload-temp",
+		"build": "parcel build --dist-dir ./dist --no-source-maps --public-url ./"
+	}
 }
