@@ -20,7 +20,11 @@ import {
 } from "./settingManagement.js";
 import { wordData } from "./wordData.js";
 import { CONJUGATION_TYPES, PARTS_OF_SPEECH } from "./wordEnums.js";
-import { toggleDisplayNone, createArrayOfArrays } from "./utils.js";
+import {
+	toggleDisplayNone,
+	createArrayOfArrays,
+	toggleBackgroundNone,
+} from "./utils.js";
 
 const isTouch = "ontouchstart" in window || navigator.msMaxTouchPoints > 0;
 document.getElementById("press-any-key-text").textContent = isTouch
@@ -105,7 +109,10 @@ function loadNewWord(wordList) {
 }
 
 function updateCurrentWord(word) {
-	document.getElementById("verb-box").style.background = "none";
+	// Caution: verb-box is controlled using a combination of the background-none class and setting style.background directly.
+	// The background-none class is useful for other CSS selectors to grab onto,
+	// while the style.background is useful for setting variable bg colors.
+	toggleBackgroundNone(document.getElementById("verb-box"), true);
 	// The <rt> element had different padding on different browsers.
 	// Rather than attacking it with CSS, just replace it with a span we have control over.
 	const verbHtml = word.wordJSON.kanji
@@ -1517,6 +1524,7 @@ function updateStatusBoxes(word, entryText) {
 		document.getElementById("verb-box").style.background = typeToWordBoxColor(
 			word.wordJSON.type
 		);
+		toggleBackgroundNone(document.getElementById("verb-box"), false);
 		changeVerbBoxFontColor("white");
 		document.getElementById("verb-type").textContent = wordTypeToDisplayText(
 			word.wordJSON.type
@@ -1600,6 +1608,8 @@ class ConjugationApp {
 
 	loadMainView() {
 		this.state.activeScreen = SCREENS.question;
+		document.getElementById("main-view").classList.add("question-screen");
+		document.getElementById("main-view").classList.remove("results-screen");
 
 		document
 			.getElementById("input-tooltip")
@@ -1641,7 +1651,11 @@ class ConjugationApp {
 	// Handle generic keydown events that aren't targeting a specific element
 	onKeyDown(e) {
 		let keyCode = e.keyCode ? e.keyCode : e.which;
-		if (this.state.activeScreen === SCREENS.results && keyCode == "13") {
+		if (
+			this.state.activeScreen === SCREENS.results &&
+			keyCode == "13" &&
+			document.activeElement.id !== "options-button"
+		) {
 			this.loadMainView();
 		}
 	}
@@ -1660,7 +1674,6 @@ class ConjugationApp {
 		let keyCode = e.keyCode ? e.keyCode : e.which;
 		if (keyCode == "13") {
 			e.stopPropagation();
-			this.state.activeScreen = SCREENS.results;
 
 			const mainInput = document.getElementById("main-text-input");
 			let inputValue = mainInput.value;
@@ -1686,6 +1699,12 @@ class ConjugationApp {
 					.getElementById("input-tooltip")
 					.classList.remove("tooltip-fade-animation");
 			}
+
+			this.state.activeScreen = SCREENS.results;
+			document
+				.getElementById("main-view")
+				.classList.remove("question-screen");
+			document.getElementById("main-view").classList.add("results-screen");
 
 			mainInput.blur();
 			updateStatusBoxes(this.state.currentWord, inputValue);

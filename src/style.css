@@ -32,6 +32,13 @@ input {
 	accent-color: #6e6e6e;
 }
 
+input[type="checkbox"],
+input[type="radio"],
+input[type="checkbox"] + label,
+input[type="radio"] + label {
+	cursor: pointer;
+}
+
 .streak p {
 	margin: 0;
 	margin-bottom: 0;
@@ -288,6 +295,7 @@ button {
 
 button:hover {
 	background: rgb(70, 70, 70);
+	cursor: pointer;
 }
 
 button:disabled {
@@ -383,6 +391,10 @@ h2 {
 	display: none !important;
 }
 
+.background-none {
+	background: none !important;
+}
+
 hr {
 	margin: 0.18rem;
 	border: 0.045rem solid rgb(66, 66, 66);
@@ -443,9 +455,30 @@ hr {
 	font-style: italic;
 	margin-bottom: 0.2rem;
 	color: #6e6e6e;
-	/* border-bottom: 2px solid #424242; */
 	display: flex;
 	align-items: center;
+}
+
+.question-screen #verb-type,
+.results-screen #verb-box.background-none #verb-type {
+	display: none;
+}
+
+.question-screen #status-container {
+	min-height: 0.8rem;
+}
+
+/* On smaller screens, we prevent verb-type and status-container from taking up screen height when they're invisible so on-screen keyboards don't cover up parts of the app while answering.
+On larger screens, we allow verb-type and status-container to always take up screen height so the app stays the same height between the question and results screen. */
+@media screen and (min-height: 820px), screen and (min-width: 510px) {
+	.question-screen #verb-type,
+	.results-screen #verb-box.background-none #verb-type {
+		display: block;
+	}
+
+	.question-screen #status-container {
+		min-height: 4rem;
+	}
 }
 
 @media screen and (min-width: 510px) {
