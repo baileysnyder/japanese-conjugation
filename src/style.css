@@ -183,6 +183,12 @@ span.rt {
 	margin-bottom: 0.3rem;
 }
 
+.sub-conjugation-indicator {
+	font-size: 0.8rem;
+	display: inline-block;
+	padding-left: 0.3rem;
+}
+
 #input-container {
 	text-align: center;
 	padding-top: 0.36rem;

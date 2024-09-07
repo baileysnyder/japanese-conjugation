@@ -1518,8 +1518,14 @@ function updateStatusBoxes(word, entryText) {
 
 	if (word.conjugation.validAnswers.some((e) => e == entryText)) {
 		statusBox.style.background = "green";
-		document.getElementById("status-text").innerHTML =
-			"Correct" + "<br>" + entryText + " ○";
+		const subConjugationForm = getSubConjugationForm(word, entryText);
+		document.getElementById("status-text").innerHTML = `Correct${
+			subConjugationForm != null
+				? '<span class="sub-conjugation-indicator">(' +
+				  subConjugationForm +
+				  ")</span>"
+				: ""
+		}<br>${entryText} ○`;
 	} else {
 		document.getElementById("verb-box").style.background = typeToWordBoxColor(
 			word.wordJSON.type
@@ -1538,6 +1544,36 @@ function updateStatusBoxes(word, entryText) {
 			word.conjugation.validAnswers[0] +
 			" ○";
 	}
+}
+
+// If this valid answer is in a non-standard form worth pointing out to the user,
+// return a string containing that form's name.
+// This applies to conjugation types that allow multiple correct answers for the same question,
+// where the user may enter a correct answer without realizing why it was correct.
+function getSubConjugationForm(word, validAnswer) {
+	const kanjiWord = toKanjiPlusHiragana(word.wordJSON.kanji);
+	const hiraganaWord = toHiragana(word.wordJSON.kanji);
+
+	// Check for potential "れる" short form
+	if (
+		word.conjugation.type === CONJUGATION_TYPES.potential &&
+		(word.wordJSON.type === "ru" || kanjiWord === "来る")
+	) {
+		const shortFormStems = [];
+
+		shortFormStems.push(dropFinalLetter(kanjiWord) + "れ");
+		if (word.wordJSON.type === "ru") {
+			shortFormStems.push(dropFinalLetter(hiraganaWord) + "れ");
+		} else if (kanjiWord === "来る") {
+			shortFormStems.push("これ");
+		}
+
+		if (shortFormStems.some((stem) => validAnswer.startsWith(stem))) {
+			return "ら-omitted short form";
+		}
+	}
+
+	return null;
 }
 
 // stored in array in local storage
