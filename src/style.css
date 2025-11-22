@@ -39,21 +39,43 @@ input[type="radio"] + label {
 	cursor: pointer;
 }
 
-.streak p {
+.score p {
 	margin: 0;
 	margin-bottom: 0;
+}
+
+#score-container {
+	display: flex;
+	justify-content: space-between;
+	text-align: center;
 	font-size: 0.65rem;
+	padding: 0.4rem;
+	padding-top: 0.3rem;
+
 }
 
-#current-streak {
-	left: 0.23rem;
-	float: left;
-}
-
-#current-streak-text,
-#max-streak-text {
-	margin: 0;
+.score-text {
 	font-size: 1rem;
+}
+
+#unseen-score-text {
+	color: lightslategray;
+}
+
+#wrong-score-text {
+	color: orangered;
+}
+
+#slow-score-text {
+	color: #ffc439;
+}
+
+#medium-score-text {
+	color: mediumseagreen;
+}
+
+#fast-score-text {
+	color: cornflowerblue
 }
 
 .grow-animation {
@@ -67,11 +89,6 @@ input[type="radio"] + label {
 	to {
 		transform: scale(1);
 	}
-}
-
-#max-streak {
-	right: 0.23rem;
-	float: right;
 }
 
 #toppest-container {
@@ -88,23 +105,17 @@ input[type="radio"] + label {
 	background: rgb(44, 43, 41);
 }
 
-#streak-container:after,
 #settings-child-container:after {
 	content: "";
 	display: table;
 	clear: both;
 }
 
-#streak-container {
-	padding: 0.4rem;
-	padding-top: 0.3rem;
-}
-
 #verb-box {
 	display: inline-block;
 	padding: 0.45rem;
 	border-radius: 1.14rem;
-	/* Using position relative because setting negative margins caused alignment to rely on streak text above*/
+	/* Using position relative because setting negative margins caused alignment to rely on scores text above*/
 	position: relative;
 }
 
@@ -299,6 +310,11 @@ button {
 	padding-right: 0.4rem;
 }
 
+#stats-button {
+	margin-left: -0.27rem;
+	float: left;
+}
+
 button:hover {
 	background: rgb(70, 70, 70);
 	cursor: pointer;
@@ -323,9 +339,18 @@ h2 {
 	font-size: 1rem;
 }
 
-#options-view {
+#options-view,
+#stats-view {
 	padding-left: 0.73rem;
 	padding-right: 0.73rem;
+}
+
+#stats-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-bottom: 0.9rem;
+	font-size: 0.8rem;
+	color: var(--whiteTextColor);
 }
 
 #options-form {
