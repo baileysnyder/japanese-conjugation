@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+docker build -t japanese-conjugation .
+docker run --rm -it -v "$(pwd)"/dist:/usr/src/app/dist japanese-conjugation:latest

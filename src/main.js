@@ -1596,7 +1596,7 @@ function loadStatsView(currentWords) {
 // returns new object with all conjugations
 function createWordList(JSONWords) {
 	let wordList = {}
-	for ([key, value] of Object.entries(JSONWords)) {
+	for (const [key, value] of Object.entries(JSONWords)) {
 		wordList[key] = [];
 		for (let i = 0; i < value.length; i++) {
 			let conjugations = getAllConjugations(value[i]);
