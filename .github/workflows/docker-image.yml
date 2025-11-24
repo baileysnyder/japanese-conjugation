@@ -19,4 +19,4 @@ jobs:
       run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
 
     - name: Build the dist files
-      run: docker run --rm -it -v "$(pwd)"/dist:/usr/src/app/dist my-image-name:$(date +%s)
+      run: docker run --rm -v "$(pwd)"/dist:/usr/src/app/dist my-image-name:$(date +%s)
