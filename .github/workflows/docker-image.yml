@@ -1,0 +1,22 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "response-speed-probability-weights" ]
+  pull_request:
+    branches: [ "response-speed-probability-weights" ]
+  workflow_dispatch:
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+
+    - name: Build the dist files
+      run: docker run --rm -it -v "$(pwd)"/dist:/usr/src/app/dist my-image-name:$(date +%s)
