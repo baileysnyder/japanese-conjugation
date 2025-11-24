@@ -2,9 +2,9 @@ name: Publish site
 
 on:
   push:
-    branches: [ "response-speed-probability-weights" ]
+    branches: [ "master" ]
   pull_request:
-    branches: [ "response-speed-probability-weights" ]
+    branches: [ "master" ]
   workflow_dispatch:
 
 permissions:
