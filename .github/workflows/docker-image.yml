@@ -16,7 +16,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+      run: docker build . --file Dockerfile --tag japanese-conjugation
 
     - name: Build the dist files
-      run: docker run --rm -v "$(pwd)"/dist:/usr/src/app/dist my-image-name:$(date +%s)
+      run: docker run --rm -v "$(pwd)"/dist:/usr/src/app/dist japanese-conjugation:latest
