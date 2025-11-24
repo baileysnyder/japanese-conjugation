@@ -1,5 +1,3 @@
-// since the weights are mostly only used to make things repeat after x amount of rounds, they are overkill
-// would be less work to just wait x rounds and immeditely show what you missed, without updating any weights.
 "use strict";
 import { bind, isJapanese } from "wanakana";
 import {
@@ -9,7 +7,7 @@ import {
 	removeNonConjugationSettings,
 	showFurigana,
 	showTranslation,
-	findMaxScoreIndex,
+	visibleConjugationSettingsChanged,
 	applyAllSettingsFilterWords,
 	applyNonConjugationSettings,
 	optionsMenuInit,
@@ -18,11 +16,10 @@ import {
 	insertSettingsFromUi,
 	getDefaultAdditiveSettings,
 } from "./settingManagement.js";
-import { wordData } from "./wordData.js";
+import { wordData } from "./worddata.js";
 import { CONJUGATION_TYPES, PARTS_OF_SPEECH } from "./wordEnums.js";
 import {
 	toggleDisplayNone,
-	createArrayOfArrays,
 	toggleBackgroundNone,
 } from "./utils.js";
 
@@ -37,6 +34,7 @@ const SCREENS = Object.freeze({
 	// Incorrect and correct answers are considered the same "results" screen
 	results: 1,
 	settings: 2,
+	stats: 3
 });
 
 function wordTypeToDisplayText(type) {
@@ -53,10 +51,13 @@ function wordTypeToDisplayText(type) {
 	}
 }
 
-function conjugationInqueryFormatting(conjugation) {
+function conjugationInqueryFormatting(conjugation, emojisOnly = false) {
 	let newString = "";
 
 	function createInqueryText(text, emoji) {
+		if (emojisOnly) {
+			return emoji;
+		}
 		return `<div class="conjugation-inquery"><div class="inquery-emoji">${emoji}</div><div class="inquery-text">${text}</div></div> `;
 	}
 
@@ -688,7 +689,7 @@ function changeToPastPlain(c) {
 function masuStem(baseVerbText, type) {
 	return type == "u"
 		? baseVerbText.substring(0, baseVerbText.length - 1) +
-				changeUtoI(baseVerbText.charAt(baseVerbText.length - 1))
+		changeUtoI(baseVerbText.charAt(baseVerbText.length - 1))
 		: baseVerbText.substring(0, baseVerbText.length - 1);
 }
 
@@ -696,8 +697,8 @@ function masuStem(baseVerbText, type) {
 function plainNegativeComplete(hiraganaVerb, type) {
 	return type == "u"
 		? hiraganaVerb.substring(0, hiraganaVerb.length - 1) +
-				changeUtoA(hiraganaVerb.charAt(hiraganaVerb.length - 1)) +
-				"ない"
+		changeUtoA(hiraganaVerb.charAt(hiraganaVerb.length - 1)) +
+		"ない"
 		: hiraganaVerb.substring(0, hiraganaVerb.length - 1) + "ない";
 }
 
@@ -908,7 +909,7 @@ const conjugationFunctions = {
 			if (type === "u") {
 				roots.push(
 					dropFinalLetter(baseVerbText) +
-						changeUtoE(baseVerbText.charAt(baseVerbText.length - 1))
+					changeUtoE(baseVerbText.charAt(baseVerbText.length - 1))
 				);
 			} else if (type === "ru") {
 				// The default spelling should be the dictionary correct "られる",
@@ -1265,179 +1266,342 @@ class Word {
 
 		// Probability is updated directly by external functions
 		this.probability = 0;
-		// wasRecentlyIncorrect is used when calculating probability
-		this.wasRecentlyIncorrect = false;
+		// Response times in ms for this word
+		this.responseTimesMs = [];
 	}
-}
 
-class WordRecentlySeen {
-	constructor(word, wasCorrect) {
-		this.word = word;
-		this.wasCorrect = wasCorrect;
-	}
-}
-
-function findMinProb(currentWords) {
-	let min = 2;
-	for (let i = 0; i < currentWords.length; i++) {
-		for (let j = 0; j < currentWords[i].length; j++) {
-			min =
-				currentWords[i][j].probability < min &&
-				currentWords[i][j].probability != 0
-					? currentWords[i][j].probability
-					: min;
+	addResponseTime(inputWasCorrect, responseTimeMs) {
+		const maxResponseTimeSlots = 3;
+		if (inputWasCorrect) {
+			this.responseTimesMs.push(responseTimeMs);
+		} else {
+			this.responseTimesMs.push(Number.MAX_SAFE_INTEGER);
 		}
-	}
-	return min;
-}
-
-function findMaxProb(currentWords) {
-	let max = 0;
-	for (let i = 0; i < currentWords.length; i++) {
-		for (let j = 0; j < currentWords[i].length; j++) {
-			max =
-				currentWords[i][j].probability > max
-					? currentWords[i][j].probability
-					: max;
-		}
-	}
-	return max;
-}
-
-function normalizeProbabilities(currentWords) {
-	let totalProbability = 0;
-	// get total of probabilities
-	for (let i = 0; i < currentWords.length; i++) {
-		for (let j = 0; j < currentWords[i].length; j++) {
-			totalProbability += currentWords[i][j].probability;
-		}
-	}
-
-	// normalize
-	for (let i = 0; i < currentWords.length; i++) {
-		for (let j = 0; j < currentWords[i].length; j++) {
-			currentWords[i][j].probability /= totalProbability;
+		// Delete the oldest response time if we are full
+		if (this.responseTimesMs.length > maxResponseTimeSlots) {
+			this.responseTimesMs.shift()
 		}
 	}
 }
 
 function setAllProbabilitiesToValue(currentWords, value) {
 	for (let i = 0; i < currentWords.length; i++) {
-		for (let j = 0; j < currentWords[i].length; j++) {
-			currentWords[i][j].probability = value;
-		}
+		currentWords[i].probability = value;
 	}
 }
 
-// Sets all of the probabilities to the same normalized value
+// Sets all of the probabilities to the same value
 function equalizeProbabilities(currentWords) {
-	setAllProbabilitiesToValue(currentWords, 1);
-
-	// Now that all of the probabilities are equal,
-	// normalize them so together they all add up to 1.
-	normalizeProbabilities(currentWords);
+	setAllProbabilitiesToValue(currentWords, getProbabilityWeight([], -1));
 }
 
-function updateProbabilites(
-	currentWords,
-	wordsRecentlySeenQueue,
-	currentWord,
-	currentWordWasCorrect
-) {
+function clearResponseTimes(currentWords) {
+	for (let i = 0; i < currentWords.length; i++) {
+		currentWords[i].responseTimesMs = [];
+	}
+}
+
+function updateProbabilites(currentWords, wordsRecentlySeenQueue, currentWord) {
 	const roundsToWait = 2;
 
 	// If the number of current verb + adjective conjugations is less than roundsToWait + 1,
 	// the pool of conjugations is too small for our wordsRecentlySeenQueue to work.
-	if (currentWords[0].length + currentWords[1].length < roundsToWait + 1) {
+	if (currentWords.length < roundsToWait + 1) {
 		// Set all probabilities except the current word to be equal to avoid getting the same question twice
-		setAllProbabilitiesToValue(currentWords, 1);
+		equalizeProbabilities(currentWords);
 		currentWord.probability = 0;
-		normalizeProbabilities(currentWords);
 		return;
 	}
-
-	// Lower probability of running into words in the same group
-	if (currentWord.wordJSON.group) {
-		const currentConjugation = currentWord.conjugation;
-		const group = currentWord.wordJSON.group;
-
-		currentWords[
-			getPartOfSpeech(currentWord.wordJSON) === PARTS_OF_SPEECH.verb ? 0 : 1
-		]
-			.filter((word) => {
-				const conjugation = word.conjugation;
-				// Only alter probabilities of the exact same conjugation for other words in the group
-				return (
-					word.wordJSON.group === group &&
-					word !== currentWord &&
-					conjugation.type === currentConjugation.type &&
-					conjugation.affirmative === currentConjugation.affirmative &&
-					conjugation.polite === currentConjugation.polite
-				);
-			})
-			.forEach((word) => {
-				// Have to be careful with lowering this too much, because it can affect findMinProb for other conjugations.
-				// Also, lowering it by a lot will make all of these words appear in a cluster after all the other words have been seen.
-				// Note that this is happening whether currentWordWasCorrect is true or false,
-				// so if someone got currentWord wrong many times it would tank the probabilities in this forEach over time.
-				word.probability /= 3;
-			});
-	}
-
 	// We wait "roundsToWait" rounds to set the probability of questions.
 	// This allows us to have a few rounds immediately after a question where it's guaranteed to not appear again,
 	// followed by the ability to set a high probability for the question to show up immediately after that waiting period (if the answer was incorrect).
 	if (wordsRecentlySeenQueue.length >= roundsToWait) {
 		let dequeuedWord = wordsRecentlySeenQueue.shift();
-		// Using findMinProb isn't a good solution because if you get one correct it's going to shrink the min prob a lot and affect future questions you get right or wrong.
-		// In the future there should probably be a static probability given to corrects, incorrects, and unseens, where that probability slowly grows the longer the word hasn't been seen.
-		let currentMinProb = findMinProb(currentWords);
-		const correctProbModifier = 0.5;
-		const incorrectProbModifier = 0.85;
-
-		let newProbability;
-
-		if (dequeuedWord.wasCorrect && !dequeuedWord.word.wasRecentlyIncorrect) {
-			newProbability = currentMinProb * correctProbModifier;
-		} else if (
-			dequeuedWord.wasCorrect &&
-			dequeuedWord.word.wasRecentlyIncorrect
-		) {
-			newProbability = currentMinProb * incorrectProbModifier;
-			dequeuedWord.word.wasRecentlyIncorrect = false;
-		} else if (!dequeuedWord.wasCorrect) {
-			// Set to an arbitrary high number to (nearly) guarantee this question is asked next.
-			newProbability = 10;
-		}
-
-		dequeuedWord.word.probability = newProbability;
+		let wordLength = dequeuedWord.conjugation.validAnswers[0].length;
+		let probabilityWeight = getProbabilityWeight(dequeuedWord.responseTimesMs, wordLength);
+		dequeuedWord.probability = probabilityWeight
 	}
 
-	// Keep track of misses so when the user finally gets it right,
-	// we can still give it a higher probability of appearing again than
-	// questions they got right on the first try.
-	if (!currentWordWasCorrect) {
-		currentWord.wasRecentlyIncorrect = true;
-	}
+	wordsRecentlySeenQueue.push(currentWord);
 
-	wordsRecentlySeenQueue.push(
-		new WordRecentlySeen(currentWord, currentWordWasCorrect)
-	);
 	// Make sure the user will not see the current question until at least "roundsToWait" number of rounds
 	currentWord.probability = 0;
-
-	normalizeProbabilities(currentWords);
 }
 
-// returns 2D array [verbarray, adjarray]
-function createWordList(JSONWords) {
-	let wordList = createArrayOfArrays(JSONWords.length);
+class ResponseTypes {
+	constructor(text, emoji, probabilityWeight) {
+		this.text = text;
+		this.emoji = emoji;
+		this.probabilityWeight = probabilityWeight;
+	}
+}
 
-	for (let i = 0; i < JSONWords.length; i++) {
-		for (let j = 0; j < JSONWords[i].length; j++) {
-			let conjugations = getAllConjugations(JSONWords[i][j]);
-			for (let k = 0; k < conjugations.length; k++) {
-				wordList[i].push(new Word(JSONWords[i][j], conjugations[k]));
+const UNSEEN_RESPONSE = new ResponseTypes("unseen", "🙈", 100);
+const FAST_RESPONSE = new ResponseTypes("fast", "🐇", 1);
+const MEDIUM_RESPONSE = new ResponseTypes("medium", "🐖", 10);
+const SLOW_RESPONSE = new ResponseTypes("slow", "🐢", 20);
+const WRONG_RESPONSE = new ResponseTypes("wrong", "🐍", 20000);
+
+function getResponseTypeFromTimeMs(responseTimeMs, wordLength) {
+	if (responseTimeMs === undefined) {
+		return UNSEEN_RESPONSE;
+	}
+	const perCharacterTimeMs = 500;
+	const fastTimeMs = 1000;
+	const moderateTimeMs = 2500;
+	if (responseTimeMs == Number.MAX_SAFE_INTEGER) {
+		return WRONG_RESPONSE;
+	}
+	if (responseTimeMs <= fastTimeMs + perCharacterTimeMs * wordLength) {
+		return FAST_RESPONSE;
+	}
+	if (responseTimeMs <= moderateTimeMs + perCharacterTimeMs * wordLength) {
+		return MEDIUM_RESPONSE;
+	}
+	return SLOW_RESPONSE;
+}
+
+class RecencyProbabilityWeighter {
+	constructor(responseTimesMs, recencyWeights) {
+		this.responseTimesMs = structuredClone(responseTimesMs);
+		this.recencyWeights = recencyWeights;
+	}
+	get(wordLength) {
+		let recencyWeight = this.recencyWeights.pop();
+		if (recencyWeight === undefined) {
+			return null;
+		}
+		// If next most recent response time is undefined, getResponseTypeFromTimeMs will
+		// return UNSEEN_RESPONSE.
+		let responseTimeMs = this.responseTimesMs.pop();
+		return getResponseTypeFromTimeMs(responseTimeMs, wordLength).probabilityWeight * recencyWeight;
+	}
+}
+
+function getProbabilityWeight(responseTimesMs, wordLength) {
+	let recencyProbabilityWeighter = new RecencyProbabilityWeighter(responseTimesMs, [1, 2, 3]);
+	let probabilityWeight = 0;
+	while (true) {
+		let probabiltyWeightForResponse = recencyProbabilityWeighter.get(wordLength);
+		if (probabiltyWeightForResponse === null) {
+			break;
+		}
+		probabilityWeight += probabiltyWeightForResponse;
+	}
+	return probabilityWeight;
+}
+
+function updateScores(currentWordList, currentWord) {
+	let unseenScore = 0;
+	let wrongScore = 0;
+	let slowScore = 0;
+	let mediumScore = 0;
+	let fastScore = 0;
+	for (let i = 0; i < currentWordList.length; i++) {
+		let word = currentWordList[i];
+		let responseType = getResponseTypeFromTimeMs(
+			word.responseTimesMs[word.responseTimesMs.length - 1],
+			word.conjugation.validAnswers[0].length
+		);
+		switch (responseType) {
+			case FAST_RESPONSE:
+				fastScore++;
+				break;
+			case MEDIUM_RESPONSE:
+				mediumScore++;
+				break;
+			case SLOW_RESPONSE:
+				slowScore++;
+				break;
+			case WRONG_RESPONSE:
+				wrongScore++;
+				break;
+			case UNSEEN_RESPONSE:
+				unseenScore++;
+				break;
+		}
+	}
+
+	// Force grow animation on the score for the current word's response type
+	// even if the score doesn't change, to give feedback to the user.
+	let currentWordResponseType = null;
+	if (currentWord != null) {
+		currentWordResponseType = getResponseTypeFromTimeMs(
+			currentWord.responseTimesMs[currentWord.responseTimesMs.length - 1],
+			currentWord.conjugation.validAnswers[0].length
+		);
+	}
+	updateScoreText("unseen-score-text", unseenScore, false);
+	updateScoreText("wrong-score-text", wrongScore, currentWordResponseType == WRONG_RESPONSE);
+	updateScoreText("slow-score-text", slowScore, currentWordResponseType == SLOW_RESPONSE);
+	updateScoreText("medium-score-text", mediumScore, currentWordResponseType == MEDIUM_RESPONSE);
+	updateScoreText("fast-score-text", fastScore, currentWordResponseType == FAST_RESPONSE);
+}
+
+function updateScoreText(id, score, forceGrow) {
+	let element = document.getElementById(id);
+	if (element.textContent != score) {
+		element.textContent = score;
+		element.classList.add("grow-animation");
+	} else if (forceGrow) {
+		element.classList.add("grow-animation");
+	}
+}
+
+function getSpeedEmojisForWord(word) {
+	let emojis = ""
+	for (let i = 0; i < word.responseTimesMs.length; i++) {
+		let responseType = getResponseTypeFromTimeMs(
+			word.responseTimesMs[i],
+			word.conjugation.validAnswers[0].length
+		);
+		emojis += responseType.emoji;
+	}
+	return emojis;
+}
+
+function logResponseTimeDetails(currentWordList) {
+	const stats = {}
+	for (let i = 0; i < currentWordList.length; i++) {
+		let word = currentWordList[i];
+		if (word.responseTimesMs.length > 0) {
+			let kanjiAnswer = word.conjugation.validAnswers[1]
+			let hiraganaAnswerLength = word.conjugation.validAnswers[0].length
+			if (stats[hiraganaAnswerLength] === undefined) {
+				stats[hiraganaAnswerLength] = {}
+			}
+			stats[hiraganaAnswerLength][kanjiAnswer] = word
+		}
+	}
+
+	// Within each wordLength, sort by fastest response time
+	Object.keys(stats).forEach(wordLength => {
+		stats[wordLength] = Object.fromEntries(
+			Object.entries(stats[wordLength]).sort(
+				([, a], [, b]) => Math.min(...a.responseTimesMs) - Math.min(...b.responseTimesMs)
+			)
+		);
+	});
+
+	let shortestWordLength = -1;
+	let fastestTimeForShortestWord = -1;
+	let shortestWord = true;
+	for (const [wordLength, value] of Object.entries(stats)) {
+		console.log("");
+		console.log("---- " + wordLength + "-character Word Response Times ----");
+		let fastestTimeForWordLength = Number.MAX_SAFE_INTEGER;
+		for (const [kanji, word] of Object.entries(value)) {
+			let fastestTime = Math.min(...word.responseTimesMs);
+			if (fastestTime < fastestTimeForWordLength) {
+				fastestTimeForWordLength = fastestTime;
+			}
+			if (shortestWord == true) {
+				console.log(
+					kanji +
+					" " + word.responseTimesMs.map(
+						(x) => x + getResponseTypeFromTimeMs(x, wordLength).emoji
+					).join(", ") +
+					", fastest: " + fastestTime +
+					", probabilty weight: " + word.probability
+				)
+				shortestWordLength = wordLength;
+				fastestTimeForShortestWord = fastestTimeForWordLength
+			} else {
+				timePerExtraCharacter = (fastestTime - fastestTimeForShortestWord) / (wordLength - shortestWordLength);
+				console.log(
+					kanji +
+					" " + word.responseTimesMs.map(
+						(x) => x + getResponseTypeFromTimeMs(x, wordLength).emoji
+					).join(", ") +
+					", fastest: ", fastestTime +
+					", per extra character time: " + timePerExtraCharacter +
+					", probability weight: " + word.probability
+				);
+			}
+		}
+		shortestWord = false;
+	}
+}
+
+function logProbabilityWeights(currentWords) {
+	console.log("");
+	console.log("---- Probability Weights ----");
+	let probabilities = {};
+	for (let i = 0; i < currentWords.length; i++) {
+		let word = currentWords[i];
+		if (probabilities[word.probability] === undefined) {
+			probabilities[word.probability] = []
+		}
+		probabilities[word.probability].push(
+			word.conjugation.validAnswers[1] + getSpeedEmojisForWord(word)
+		);
+	}
+	Object.entries(probabilities).forEach(([key, value]) => {
+		console.log(key + ": " + value.join(", "));
+	});
+}
+
+function loadStatsView(currentWords) {
+	const tableBody = document.getElementById("stats-table-body");
+	// clear existing rows
+	tableBody.replaceChildren();
+
+	// build row content
+	let rowData = []
+	for (let i = 0; i < currentWords.length; i++) {
+		let word = currentWords[i];
+		if (word.responseTimesMs.length == 0) {
+			continue;
+		}
+
+		// Probability weight is 0 if the word is still on the wordsRecentlySeenQueue.
+		// For stats view, calculate what it will be.
+		let probabilityWeight = word.probability;
+		if (probabilityWeight == 0) {
+			probabilityWeight = getProbabilityWeight(
+				word.responseTimesMs,
+				word.conjugation.validAnswers[0].length
+			);
+		}
+
+		let rowObject = {
+			kanji: toKanjiPlusHiragana(word.wordJSON.kanji),
+			hiragana: word.conjugation.validAnswers[0],
+			conjugation: conjugationInqueryFormatting(word.conjugation, true),
+			speed: getSpeedEmojisForWord(word),
+			probabilityWeight: probabilityWeight
+		}
+		rowData.push(rowObject);
+	}
+
+	// sort by probability weight ascending; within that by kana reading
+	function sortFunction(a, b) {
+		let diff = a.probabilityWeight - b.probabilityWeight;
+		if (diff != 0) {
+			return diff;
+		}
+		return Intl.Collator("ja").compare(a.hiragana, b.hiragana);
+	}
+	rowData.sort(sortFunction);
+
+	// insert rows
+	for (let i = 0; i < rowData.length; i++) {
+		let row = tableBody.insertRow();
+		row.insertCell().textContent = rowData[i].kanji;
+		row.insertCell().textContent = rowData[i].conjugation;
+		row.insertCell().textContent = rowData[i].speed;
+	}
+}
+
+// returns new object with all conjugations
+function createWordList(JSONWords) {
+	let wordList = {}
+	for (const [key, value] of Object.entries(JSONWords)) {
+		wordList[key] = [];
+		for (let i = 0; i < value.length; i++) {
+			let conjugations = getAllConjugations(value[i]);
+			for (let j = 0; j < conjugations.length; j++) {
+				wordList[key].push(new Word(value[i], conjugations[j]));
 			}
 		}
 	}
@@ -1445,53 +1609,22 @@ function createWordList(JSONWords) {
 }
 
 function pickRandomWord(wordList) {
-	let random = Math.random();
-
+	let sum = 0;
+	for (let i = 0; i < wordList.length; i++) {
+		sum += wordList[i].probability;
+	}
+	let random = Math.random() * sum;
 	try {
 		for (let i = 0; i < wordList.length; i++) {
-			for (let j = 0; j < wordList[i].length; j++) {
-				if (random < wordList[i][j].probability) {
-					return wordList[i][j];
-				}
-				random -= wordList[i][j].probability;
+			if (random < wordList[i].probability) {
+				return wordList[i];
 			}
+			random -= wordList[i].probability;
 		}
 		throw "no random word chosen";
 	} catch (err) {
 		console.error(err);
-		return wordList[0][0];
-	}
-}
-
-function addToScore(amount = 1, maxScoreObjects, maxScoreIndex) {
-	if (amount == 0) {
-		return;
-	}
-	let max = document.getElementById("max-streak-text");
-	let current = document.getElementById("current-streak-text");
-
-	if (parseInt(max.textContent) <= parseInt(current.textContent)) {
-		let newAmount = parseInt(max.textContent) + amount;
-		max.textContent = newAmount;
-		if (
-			!document
-				.getElementById("max-streak")
-				.classList.contains("display-none")
-		) {
-			max.classList.add("grow-animation");
-		}
-
-		maxScoreObjects[maxScoreIndex].score = newAmount;
-		localStorage.setItem("maxScoreObjects", JSON.stringify(maxScoreObjects));
-	}
-
-	current.textContent = parseInt(current.textContent) + amount;
-	if (
-		!document
-			.getElementById("current-streak")
-			.classList.contains("display-none")
-	) {
-		current.classList.add("grow-animation");
+		return wordList[0];
 	}
 }
 
@@ -1516,16 +1649,16 @@ function updateStatusBoxes(word, entryText) {
 	let statusBox = document.getElementById("status-box");
 	toggleDisplayNone(statusBox, false);
 
+	let emojis = getSpeedEmojisForWord(word);
 	if (word.conjugation.validAnswers.some((e) => e == entryText)) {
 		statusBox.style.background = "green";
 		const subConjugationForm = getSubConjugationForm(word, entryText);
-		document.getElementById("status-text").innerHTML = `Correct${
-			subConjugationForm != null
-				? '<span class="sub-conjugation-indicator">(' +
-				  subConjugationForm +
-				  ")</span>"
-				: ""
-		}<br>${entryText} ○`;
+		document.getElementById("status-text").innerHTML = `Correct${subConjugationForm != null
+			? '<span class="sub-conjugation-indicator">(' +
+			subConjugationForm +
+			")</span>"
+			: ""
+			} ${emojis}<br>${entryText} ○`;
 	} else {
 		document.getElementById("verb-box").style.background = typeToWordBoxColor(
 			word.wordJSON.type
@@ -1540,7 +1673,7 @@ function updateStatusBoxes(word, entryText) {
 		// Assuming validAnswers[0] is the hiragana answer
 		document.getElementById("status-text").innerHTML =
 			(entryText == "" ? "_" : entryText) +
-			" ×<br>" +
+			" " + emojis + "<br>" +
 			word.conjugation.validAnswers[0] +
 			" ○";
 	}
@@ -1576,18 +1709,8 @@ function getSubConjugationForm(word, validAnswer) {
 	return null;
 }
 
-// stored in array in local storage
-export class MaxScoreObject {
-	constructor(score, settings) {
-		this.score = score;
-		this.settings = settings;
-	}
-}
-
-// Array index 0 = verbs, 1 = adjectives
-// Stored in an array instead of object to make parsing faster. Upon reflection this was not worth it.
 function initApp() {
-	new ConjugationApp([wordData.verbs, wordData.adjectives]);
+	new ConjugationApp(wordData);
 }
 
 class ConjugationApp {
@@ -1604,42 +1727,33 @@ class ConjugationApp {
 		document
 			.getElementById("options-form")
 			.addEventListener("submit", (e) => this.backButtonClicked(e));
-
 		document
-			.getElementById("current-streak-text")
-			.addEventListener("animationend", (e) => {
-				document
-					.getElementById("current-streak-text")
-					.classList.remove(e.animationName);
-			});
+			.getElementById("stats-button")
+			.addEventListener("click", (e) => this.statsButtonClicked(e));
 		document
-			.getElementById("max-streak-text")
-			.addEventListener("animationend", (e) => {
-				document
-					.getElementById("max-streak-text")
-					.classList.remove(e.animationName);
-			});
-
-		document
-			.getElementById("status-box")
-			.addEventListener("animationend", (e) => {
-				document
-					.getElementById("status-box")
-					.classList.remove(e.animationName);
-			});
-
-		document
-			.getElementById("input-tooltip")
-			.addEventListener("animationend", (e) => {
-				document
-					.getElementById("input-tooltip")
-					.classList.remove(e.animationName);
-			});
-
+			.getElementById("stats-back-button")
+			.addEventListener("click", (e) => this.statsBackButtonClicked(e));
+		this.addAnimationEndEventListener("unseen-score-text");
+		this.addAnimationEndEventListener("wrong-score-text");
+		this.addAnimationEndEventListener("slow-score-text");
+		this.addAnimationEndEventListener("medium-score-text");
+		this.addAnimationEndEventListener("fast-score-text");
+		this.addAnimationEndEventListener("status-box");
+		this.addAnimationEndEventListener("input-tooltip");
 		document.addEventListener("keydown", this.onKeyDown.bind(this));
 		document.addEventListener("touchend", this.onTouchEnd.bind(this));
 
 		optionsMenuInit();
+	}
+
+	addAnimationEndEventListener(id) {
+		document
+			.getElementById(id)
+			.addEventListener("animationend", (e) => {
+				document
+					.getElementById(id)
+					.classList.remove(e.animationName);
+			});
 	}
 
 	loadMainView() {
@@ -1654,9 +1768,9 @@ class ConjugationApp {
 		toggleDisplayNone(document.getElementById("press-any-key-text"), true);
 		toggleDisplayNone(document.getElementById("status-box"), true);
 
-		if (this.state.currentStreak0OnReset) {
-			document.getElementById("current-streak-text").textContent = "0";
-			this.state.currentStreak0OnReset = false;
+		if (this.state.loadScoresOnReset) {
+			updateScores(this.state.currentWordList, null);
+			this.state.loadScoresOnReset = false;
 		}
 
 		if (this.state.loadWordOnReset) {
@@ -1668,17 +1782,18 @@ class ConjugationApp {
 		showFurigana(
 			this.state.settings.furigana,
 			this.state.settings.furiganaTiming ===
-				CONDITIONAL_UI_TIMINGS.onlyAfterAnswering
+			CONDITIONAL_UI_TIMINGS.onlyAfterAnswering
 		);
 		showTranslation(
 			this.state.settings.translation,
 			this.state.settings.translationTiming ===
-				CONDITIONAL_UI_TIMINGS.onlyAfterAnswering
+			CONDITIONAL_UI_TIMINGS.onlyAfterAnswering
 		);
 
 		const mainInput = document.getElementById("main-text-input");
 		mainInput.disabled = false;
 		mainInput.value = "";
+		this.state.startTimestamp = Date.now();
 		if (!isTouch) {
 			mainInput.focus();
 		}
@@ -1690,7 +1805,7 @@ class ConjugationApp {
 		if (
 			this.state.activeScreen === SCREENS.results &&
 			keyCode == "13" &&
-			document.activeElement.id !== "options-button"
+			(document.activeElement.id !== "options-button" || document.activeElement.id !== "stats-button")
 		) {
 			this.loadMainView();
 		}
@@ -1700,7 +1815,7 @@ class ConjugationApp {
 	onTouchEnd(e) {
 		if (
 			this.state.activeScreen === SCREENS.results &&
-			e.target != document.getElementById("options-button")
+			(e.target != document.getElementById("options-button") || e.target != document.getElementById("stats-button"))
 		) {
 			this.loadMainView();
 		}
@@ -1742,6 +1857,17 @@ class ConjugationApp {
 				.classList.remove("question-screen");
 			document.getElementById("main-view").classList.add("results-screen");
 
+			const inputWasCorrect =
+				this.state.currentWord.conjugation.validAnswers.some(
+					(e) => e == inputValue
+				);
+
+			// record response time
+			this.state.currentWord.addResponseTime(
+				inputWasCorrect,
+				Date.now() - this.state.startTimestamp
+			);
+
 			mainInput.blur();
 			updateStatusBoxes(this.state.currentWord, inputValue);
 			// If the furigana or translation were made transparent during the question, make them visible now
@@ -1749,25 +1875,19 @@ class ConjugationApp {
 			showTranslation(this.state.settings.translation, false);
 
 			// update probabilities before next word is chosen so don't choose same word
-			const inputWasCorrect =
-				this.state.currentWord.conjugation.validAnswers.some(
-					(e) => e == inputValue
-				);
-
 			updateProbabilites(
 				this.state.currentWordList,
 				this.state.wordsRecentlySeenQueue,
-				this.state.currentWord,
-				inputWasCorrect
+				this.state.currentWord
 			);
+			// Uncomment the following to log reponse time details and probability weights assigned.
+			// logResponseTimeDetails(this.state.currentWordList);
+			// logProbabilityWeights(this.state.currentWordList);
 
-			if (inputWasCorrect) {
-				addToScore(1, this.state.maxScoreObjects, this.state.maxScoreIndex);
-				this.state.currentStreak0OnReset = false;
-			} else {
-				this.state.currentStreak0OnReset = true;
-			}
 			this.state.loadWordOnReset = true;
+
+			updateScores(this.state.currentWordList, this.state.currentWord);
+			this.state.loadScoresOnReset = false;
 
 			mainInput.disabled = true;
 			toggleDisplayNone(
@@ -1787,36 +1907,19 @@ class ConjugationApp {
 
 		toggleDisplayNone(document.getElementById("main-view"), true);
 		toggleDisplayNone(document.getElementById("options-view"), false);
+		toggleDisplayNone(document.getElementById("stats-view"), true);
 		toggleDisplayNone(document.getElementById("donation-section"), false);
 	}
 
 	backButtonClicked(e) {
 		e.preventDefault();
 
+		let previousSettings = structuredClone(this.state.settings);
 		insertSettingsFromUi(this.state.settings);
 		localStorage.setItem("settings", JSON.stringify(this.state.settings));
 
-		const visibleConjugationSettings = getVisibleConjugationSettings();
-		let newMaxScoreIndex = findMaxScoreIndex(
-			this.state.maxScoreObjects,
-			visibleConjugationSettings
-		);
-
-		if (newMaxScoreIndex === -1) {
-			this.state.maxScoreObjects.push(
-				new MaxScoreObject(0, visibleConjugationSettings)
-			);
-			localStorage.setItem(
-				"maxScoreObjects",
-				JSON.stringify(this.state.maxScoreObjects)
-			);
-			newMaxScoreIndex = this.state.maxScoreObjects.length - 1;
-		}
-
-		if (newMaxScoreIndex !== this.state.maxScoreIndex) {
-			localStorage.setItem("maxScoreIndex", newMaxScoreIndex);
-			this.state.maxScoreIndex = newMaxScoreIndex;
-			this.state.currentStreak0OnReset = true;
+		if (visibleConjugationSettingsChanged(previousSettings)) {
+			this.state.loadScoresOnReset = true;
 			this.state.loadWordOnReset = true;
 
 			this.applySettingsUpdateWordList();
@@ -1830,13 +1933,28 @@ class ConjugationApp {
 			applyNonConjugationSettings(this.state.settings);
 		}
 
-		document.getElementById("max-streak-text").textContent =
-			this.state.maxScoreObjects[this.state.maxScoreIndex].score;
-
 		toggleDisplayNone(document.getElementById("main-view"), false);
 		toggleDisplayNone(document.getElementById("options-view"), true);
+		toggleDisplayNone(document.getElementById("stats-view"), true);
 		toggleDisplayNone(document.getElementById("donation-section"), true);
 
+		this.loadMainView();
+	}
+
+	statsButtonClicked(e) {
+		this.state.activeScreen = SCREENS.stats;
+		loadStatsView(this.state.currentWordList);
+		toggleDisplayNone(document.getElementById("main-view"), true);
+		toggleDisplayNone(document.getElementById("options-view"), true);
+		toggleDisplayNone(document.getElementById("stats-view"), false);
+		toggleDisplayNone(document.getElementById("donation-section"), false);
+	}
+
+	statsBackButtonClicked(e) {
+		toggleDisplayNone(document.getElementById("main-view"), false);
+		toggleDisplayNone(document.getElementById("options-view"), true);
+		toggleDisplayNone(document.getElementById("stats-view"), true);
+		toggleDisplayNone(document.getElementById("donation-section"), true);
 		this.loadMainView();
 	}
 
@@ -1844,37 +1962,13 @@ class ConjugationApp {
 		this.state = {};
 		this.state.completeWordList = createWordList(words);
 
-		if (
-			!localStorage.getItem("maxScoreObjects") ||
-			!localStorage.getItem("maxScoreIndex") ||
-			!localStorage.getItem("settings")
-		) {
-			this.state.maxScoreIndex = 0;
-			localStorage.setItem("maxScoreIndex", this.state.maxScoreIndex);
-
+		if (!localStorage.getItem("settings")) {
 			this.state.settings = getDefaultSettings();
 			localStorage.setItem("settings", JSON.stringify(this.state.settings));
-
-			this.state.maxScoreObjects = [
-				new MaxScoreObject(
-					0,
-					removeNonConjugationSettings(this.state.settings)
-				),
-			];
-			localStorage.setItem(
-				"maxScoreObjects",
-				JSON.stringify(this.state.maxScoreObjects)
-			);
 		} else {
-			this.state.maxScoreIndex = parseInt(
-				localStorage.getItem("maxScoreIndex")
-			);
 			this.state.settings = Object.assign(
 				getDefaultAdditiveSettings(),
 				JSON.parse(localStorage.getItem("settings"))
-			);
-			this.state.maxScoreObjects = JSON.parse(
-				localStorage.getItem("maxScoreObjects")
 			);
 		}
 
@@ -1882,11 +1976,8 @@ class ConjugationApp {
 		this.state.currentWord = loadNewWord(this.state.currentWordList);
 		this.state.wordsRecentlySeenQueue = [];
 
-		this.state.currentStreak0OnReset = false;
 		this.state.loadWordOnReset = false;
-
-		document.getElementById("max-streak-text").textContent =
-			this.state.maxScoreObjects[this.state.maxScoreIndex].score;
+		this.state.loadScoresOnReset = true;
 
 		this.loadMainView();
 	}
@@ -1896,6 +1987,7 @@ class ConjugationApp {
 			this.state.settings,
 			this.state.completeWordList
 		);
+		clearResponseTimes(filteredWords);
 		equalizeProbabilities(filteredWords);
 		this.state.currentWordList = filteredWords;
 	}

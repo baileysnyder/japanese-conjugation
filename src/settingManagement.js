@@ -1,5 +1,5 @@
 import { CONJUGATION_TYPES, PARTS_OF_SPEECH } from "./wordEnums.js";
-import { toggleDisplayNone, createArrayOfArrays } from "./utils.js";
+import { toggleDisplayNone } from "./utils.js";
 
 // Enum for radio options that conditionally show/hide UI elements
 export const CONDITIONAL_UI_TIMINGS = Object.freeze({
@@ -377,19 +377,19 @@ function showHideTranslationSubOptions() {
 
 export function applyNonConjugationSettings(settings) {
 	showEmojis(settings.emoji);
-	showStreak(settings.streak);
+	showScores(settings.score);
+	showStatsButton(settings.stats);
 	// showTranslation and showFurigana are dependent on the state, so we can't set them here
 }
 
 export function applyAllSettingsFilterWords(settings, completeWordList) {
 	applyNonConjugationSettings(settings);
 
-	let currentWordList = createArrayOfArrays(completeWordList.length);
-
+	let verbs = [];
 	const verbRegex = /^verb.+/;
 	if (settings.verb !== false) {
 		// Copy all of the verbs over
-		currentWordList[0] = [...completeWordList[0]];
+		verbs = [...completeWordList.verbs];
 
 		let verbOptions = Object.keys(settings).filter((el) =>
 			verbRegex.test(el)
@@ -397,17 +397,18 @@ export function applyAllSettingsFilterWords(settings, completeWordList) {
 		// Filter out the verbs we don't want
 		for (let i = 0; i < verbOptions.length; i++) {
 			if (settings[verbOptions[i]] === false) {
-				currentWordList[0] = currentWordList[0].filter(
+				verbs = verbs.filter(
 					questionRemoveFilters.verbs[verbOptions[i]]
 				);
 			}
 		}
 	}
 
+	let adjectives = [];
 	const adjectiveRegex = /^adjective.+/;
 	if (settings.adjective !== false) {
 		// Copy all of the adjectives over
-		currentWordList[1] = [...completeWordList[1]];
+		adjectives = [...completeWordList.adjectives];
 
 		let adjectiveOptions = Object.keys(settings).filter((el) =>
 			adjectiveRegex.test(el)
@@ -415,14 +416,14 @@ export function applyAllSettingsFilterWords(settings, completeWordList) {
 		// Filter out the adjectives we don't want
 		for (let i = 0; i < adjectiveOptions.length; i++) {
 			if (settings[adjectiveOptions[i]] === false) {
-				currentWordList[1] = currentWordList[1].filter(
+				adjectives = adjectives.filter(
 					questionRemoveFilters.adjectives[adjectiveOptions[i]]
 				);
 			}
 		}
 	}
 
-	return currentWordList;
+	return verbs.concat(adjectives);
 }
 
 // The input to these functions is a "Word" object defined in main.js.
@@ -517,29 +518,19 @@ const questionRemoveFilters = {
 };
 
 /**
- * Searches the maxScoreObjects array for a maxScoreObject with specified settings.
- * Make sure visibleConjugationSettings doesn't contain any settings that aren't tied to max score (like "Show English translations" for example)
+ * Determines if visible conjugation settings differ from previous settings.
+ * Make sure visibleConjugationSettings doesn't contain any settings that aren't tied to scoress (like "Show English translations" for example)
  *
- * @param {Array<MaxScoreObject>} maxScoreObjects
- * @param {Object} visibleConjugationSettings
- * @returns The index where the match was found. If no match was found, returns -1.
+ * @param {Object} previous settings
+ * @returns true if visible conjugaiont settings changed; false otherwise.
  */
-export function findMaxScoreIndex(maxScoreObjects, visibleConjugationSettings) {
-	let settingKeys = Object.keys(visibleConjugationSettings);
-	let flag;
-	for (let i = 0; i < maxScoreObjects.length; i++) {
-		flag = true;
-		for (let s of settingKeys) {
-			if (maxScoreObjects[i].settings[s] != visibleConjugationSettings[s]) {
-				flag = false;
-				break;
-			}
-		}
-		if (flag == true) {
-			return i;
+export function visibleConjugationSettingsChanged(previousSettings) {
+	for (const [key, setting] of Object.entries(getVisibleConjugationSettings())) {
+		if (previousSettings[key] != setting) {
+			return true;
 		}
 	}
-	return -1;
+	return false;
 }
 
 export const showEmojis = function (show) {
@@ -548,14 +539,23 @@ export const showEmojis = function (show) {
 		: "hide-emojis";
 };
 
-export const showStreak = function (show) {
-	document.querySelectorAll(".streak").forEach((s) => {
-		if (show) {
-			s.classList.remove("display-none");
-		} else {
-			s.classList.add("display-none");
-		}
-	});
+export const showScores = function (show) {
+       document.querySelectorAll(".score").forEach((s) => {
+               if (show) {
+                       s.classList.remove("display-none");
+               } else {
+                       s.classList.add("display-none");
+               }
+       });
+};
+
+export const showStatsButton = function (show) {
+	let statsButton = document.getElementById("stats-button");
+    if (show) {
+		statsButton.classList.remove("display-none");
+	} else {
+		statsButton.classList.add("display-none");
+	}
 };
 
 // Can be shown never, always, or only after answering.

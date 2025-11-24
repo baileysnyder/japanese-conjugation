@@ -21,14 +21,26 @@
         <h1>Japanese Conjugation Practice</h1>
         <div id="top-container">
             <div id = "main-view">
-                <div id="streak-container">
-                        <div id="current-streak" class="streak">
-                            <p>Current Streak</p>
-                            <p id="current-streak-text">0</p>
+                    <div id="score-container">
+                        <div id="unseen-score" class="score">
+                            <p>Unseen</p>
+                            <p id="unseen-score-text" class="score-text">0</p>
                         </div>
-                        <div id="max-streak" class="streak">
-                            <p>Max Streak</p>
-                            <p id="max-streak-text"> </p>
+                        <div id="wrong-score" class="score">
+                            <p>Wrong</p>
+                            <p id="wrong-score-text" class="score-text">0</p>
+                        </div>
+                        <div id="slow-score" class="score">
+                            <p>Slow</p>
+                            <p id="slow-score-text" class="score-text">0</p>
+                        </div>
+                        <div id="medium-score" class="score">
+                            <p>Medium</p>
+                            <p id="medium-score-text" class="score-text">0</p>
+                        </div>
+                        <div id="fast-score" class="score">
+                            <p>Fast</p>
+                            <p id="fast-score-text" class="score-text">0</p>
                         </div>
                     </div>
                     <div id="verb-container">
@@ -53,7 +65,7 @@
                     <div id="settings-container">
                         <div id="settings-child-container">
                             <table id="settings-table">
-                                <td style="width:29%"></td>
+                                <td style="width:29%"><button id="stats-button">Stats 🔢</button></td>
                                 <td style="width:42%"id="press-any-key-text" class="display-none">Press Enter/Return to continue</td>
                                 <td style="width:29%"><button id="options-button">Options ⚙️</button></td>
                             </table>
@@ -79,7 +91,8 @@
                             </div>
                         </div>
                         <div class="option-row"><input id="emoji-checkbox" type="checkbox" name="emoji"><label for="emoji-checkbox">Show emojis above conjugation types</label></div>
-                        <div class="option-row"><input id="streak-checkbox" type="checkbox" name="streak"><label for="streak-checkbox">Show current/max streak</label></div>
+                        <div class="option-row"><input id="score-checkbox" type="checkbox" name="score"><label for="score-checkbox">Show scores</label></div>
+                        <div class="option-row"><input id="stats-button-checkbox" type="checkbox" name="stats"><label for="stats-button-checkbox">Show stats button</label></div>
                     </div>
                     <div id="conjugation-settings">
                         <hr>
@@ -185,8 +198,19 @@
                     </div>
                     <div id="back-button-container">
                         <button type="submit" id="back-button">Back ↩</button>
-                    </div>    
+                    </div>
                 </form>
+            </div>
+            <div id="stats-view" class="display-none">
+                <h2>Stats</h2>
+                <table id="stats-table">
+                    <tbody id="stats-table-body"></tbody>
+                </table>
+                <div id="stats-form">
+                    <div id="back-button-container">
+                        <button id="stats-back-button">Back ↩</button>
+                    </div>
+                </div>
             </div>
         </div>
         <div id="donation-section" class="display-none">
