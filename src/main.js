@@ -704,7 +704,7 @@ function changeToPastPlain(c) {
 function masuStem(baseVerbText, type) {
 	return type == "u"
 		? baseVerbText.substring(0, baseVerbText.length - 1) +
-			  changeUtoI(baseVerbText.charAt(baseVerbText.length - 1))
+				changeUtoI(baseVerbText.charAt(baseVerbText.length - 1))
 		: baseVerbText.substring(0, baseVerbText.length - 1);
 }
 
@@ -712,8 +712,8 @@ function masuStem(baseVerbText, type) {
 function plainNegativeComplete(hiraganaVerb, type) {
 	return type == "u"
 		? hiraganaVerb.substring(0, hiraganaVerb.length - 1) +
-			  changeUtoA(hiraganaVerb.charAt(hiraganaVerb.length - 1)) +
-			  "ない"
+				changeUtoA(hiraganaVerb.charAt(hiraganaVerb.length - 1)) +
+			  	"ない"
 		: hiraganaVerb.substring(0, hiraganaVerb.length - 1) + "ない";
 }
 
