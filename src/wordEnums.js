@@ -13,4 +13,5 @@ export const CONJUGATION_TYPES = Object.freeze({
 	causative: "Causative",
 	potential: "Potential",
 	imperative: "Imperative",
+	causativePassive: "Causative Passive",
 });
