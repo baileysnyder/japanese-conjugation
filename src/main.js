@@ -725,11 +725,11 @@ function dropFinalLetter(word) {
 const conjugationFunctions = {
 	[PARTS_OF_SPEECH.verb]: {
 		[CONJUGATION_TYPES.present]: function (
-			baseVerbText, 
-		type,
-		affirmative,
-		polite
-	) {
+			baseVerbText,
+			type,
+			affirmative,
+			polite
+		) {
 			if (type == "irv") {
 				return irregularVerbConjugation(
 					baseVerbText,
@@ -906,10 +906,10 @@ const conjugationFunctions = {
 			}
 		},
 		[CONJUGATION_TYPES.potential]: function (
-				baseVerbText,
-				type,
-				affirmative,
-				polite
+			baseVerbText,
+			type,
+			affirmative,
+			polite
 		) {
 			if (type === "irv") {
 				return irregularVerbConjugation(
@@ -925,7 +925,7 @@ const conjugationFunctions = {
 				roots.push(
 					dropFinalLetter(baseVerbText) +
 						changeUtoE(baseVerbText.charAt(baseVerbText.length - 1))
-					);
+				);
 			} else if (type === "ru") {
 				// The default spelling should be the dictionary correct "られる",
 				// but also allow the common shortened version "れる".
