@@ -55,7 +55,7 @@ function wordTypeToDisplayText(type) {
 
 function conjugationInqueryFormatting(conjugation) {
 	let newString = "";
-
+	
 	function createInqueryText(text, emoji) {
 		return `<div class="conjugation-inquery"><div class="inquery-emoji">${emoji}</div><div class="inquery-text">${text}</div></div> `;
 	}
@@ -77,6 +77,8 @@ function conjugationInqueryFormatting(conjugation) {
 		newString += createInqueryText(CONJUGATION_TYPES.potential, "‍🏋");
 	} else if (conjugation.type === CONJUGATION_TYPES.imperative) {
 		newString += createInqueryText(CONJUGATION_TYPES.imperative, "📢");
+	} else if (conjugation.type === CONJUGATION_TYPES.adjectiveteform) {
+		newString += createInqueryText(CONJUGATION_TYPES.adjectiveteform, "🔄");
 	}
 
 	// This used to also add "Affirmative" text when affirmative was true, but it was a little redundant.
@@ -514,6 +516,12 @@ function iiConjugation(affirmative, polite, conjugationType) {
 		}
 	} else if (conjugationType === CONJUGATION_TYPES.adverb) {
 		return ["よく", "良く"];
+	} else if (conjugationType === CONJUGATION_TYPES.adjectiveteform) {
+		if (affirmative) {
+			return ["よくて", "良くて"];
+		} else {
+			return ["よくなくて", "良くなくて"];
+		}
 	}
 }
 
@@ -1037,6 +1045,33 @@ const conjugationFunctions = {
 				];
 			}
 		},
+		[CONJUGATION_TYPES.adjectiveteform]: function (
+			baseAdjectiveText,
+			type,
+			affirmative
+		) {
+			if (type == "i") {
+				var adjBase = dropFinalLetter(baseAdjectiveText);
+				if (affirmative) {
+					return adjBase + "くて";
+				} else {
+					return adjBase + "くなくて";
+				}
+			} else if (type == "na") {
+				if (affirmative) {
+					return baseAdjectiveText + "で";
+				} else {
+					return baseAdjectiveText + "じゃなくて";
+				}
+			} else if (type == "ira") {
+					return irregularAdjectiveConjugation(
+					baseAdjectiveText,
+					affirmative,
+					false,
+					CONJUGATION_TYPES.adjectiveteform
+				);
+			}
+		},
 		[CONJUGATION_TYPES.adverb]: function (baseAdjectiveText, type) {
 			if (type == "ira") {
 				return irregularAdjectiveConjugation(
@@ -1240,6 +1275,19 @@ function getAllConjugations(wordJSON) {
 				null
 			)
 		);
+		// Add te-form
+		allConjugations.push(
+			[true, false].map((affirmative) =>
+				getConjugation(
+					wordJSON,
+					partOfSpeech,
+					CONJUGATION_TYPES.adjectiveteform,
+					validBaseWordSpellings,
+					affirmative,
+					null
+				)
+			)
+		)
 	}
 
 	// allConjugations contains either Conjugations or arrays of Conjugations.
