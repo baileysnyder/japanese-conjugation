@@ -486,6 +486,9 @@ const questionRemoveFilters = {
 		adjectivepast: function (word) {
 			return word.conjugation.type !== CONJUGATION_TYPES.past;
 		},
+		adjectiveteform: function (word) {
+			return word.conjugation.type !== CONJUGATION_TYPES.adjectiveteform;
+		},
 		adjectiveadverb: function (word) {
 			return word.conjugation.type !== CONJUGATION_TYPES.adverb;
 		},
