@@ -78,7 +78,7 @@ function conjugationInqueryFormatting(conjugation) {
 	} else if (conjugation.type === CONJUGATION_TYPES.imperative) {
 		newString += createInqueryText(CONJUGATION_TYPES.imperative, "📢");
 	} else if (conjugation.type === CONJUGATION_TYPES.causativePassive) {
-		newString += createInqueryText(CONJUGATION_TYPES.causativePassive, "👨‍⚖️");
+		newString += createInqueryText(CONJUGATION_TYPES.causativePassive, "😒");
 	}
 
 	// This used to also add "Affirmative" text when affirmative was true, but it was a little redundant.
@@ -985,14 +985,12 @@ const conjugationFunctions = {
 			const causativePassiveRoot = [];
 			if (type === "u") {
 				const finalChar = baseVerbText.charAt(baseVerbText.length - 1);
+				const root = dropFinalLetter(baseVerbText) + changeUtoA(finalChar);
 				if (finalChar === "す") {
-					causativePassiveRoot.push(
-						dropFinalLetter(baseVerbText) + 
-						changeUtoA(finalChar) + "せられ");
-				} else {
-					const root = dropFinalLetter(baseVerbText) + changeUtoA(finalChar);
-					causativePassiveRoot.push(root + "され");
 					causativePassiveRoot.push(root + "せられ");
+				} else {
+					causativePassiveRoot.push(root + "せられ");
+					causativePassiveRoot.push(root + "され");
 				}
 			} else if (type === "ru") {
 				causativePassiveRoot.push(dropFinalLetter(baseVerbText) + "させられ");
