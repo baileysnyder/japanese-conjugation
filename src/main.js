@@ -22,7 +22,6 @@ import { wordData } from "./wordData.js";
 import { CONJUGATION_TYPES, PARTS_OF_SPEECH } from "./wordEnums.js";
 import {
 	toggleDisplayNone,
-	createArrayOfArrays,
 	toggleBackgroundNone,
 } from "./utils.js";
 
@@ -1280,13 +1279,10 @@ class WordRecentlySeen {
 function findMinProb(currentWords) {
 	let min = 2;
 	for (let i = 0; i < currentWords.length; i++) {
-		for (let j = 0; j < currentWords[i].length; j++) {
-			min =
-				currentWords[i][j].probability < min &&
-				currentWords[i][j].probability != 0
-					? currentWords[i][j].probability
-					: min;
-		}
+		min = currentWords[i].probability < min &&
+			currentWords[i].probability != 0
+			? currentWords[i].probability
+			: min;
 	}
 	return min;
 }
@@ -1294,12 +1290,9 @@ function findMinProb(currentWords) {
 function findMaxProb(currentWords) {
 	let max = 0;
 	for (let i = 0; i < currentWords.length; i++) {
-		for (let j = 0; j < currentWords[i].length; j++) {
-			max =
-				currentWords[i][j].probability > max
-					? currentWords[i][j].probability
-					: max;
-		}
+		max = currentWords[i].probability > max
+			? currentWords[i].probability
+			: max;
 	}
 	return max;
 }
@@ -1308,24 +1301,18 @@ function normalizeProbabilities(currentWords) {
 	let totalProbability = 0;
 	// get total of probabilities
 	for (let i = 0; i < currentWords.length; i++) {
-		for (let j = 0; j < currentWords[i].length; j++) {
-			totalProbability += currentWords[i][j].probability;
-		}
+		totalProbability += currentWords[i].probability;
 	}
 
 	// normalize
 	for (let i = 0; i < currentWords.length; i++) {
-		for (let j = 0; j < currentWords[i].length; j++) {
-			currentWords[i][j].probability /= totalProbability;
-		}
+		currentWords[i].probability /= totalProbability;
 	}
 }
 
 function setAllProbabilitiesToValue(currentWords, value) {
 	for (let i = 0; i < currentWords.length; i++) {
-		for (let j = 0; j < currentWords[i].length; j++) {
-			currentWords[i][j].probability = value;
-		}
+		currentWords[i].probability = value;
 	}
 }
 
@@ -1429,15 +1416,15 @@ function updateProbabilites(
 	normalizeProbabilities(currentWords);
 }
 
-// returns 2D array [verbarray, adjarray]
+// returns new object with all conjugations
 function createWordList(JSONWords) {
-	let wordList = createArrayOfArrays(JSONWords.length);
-
-	for (let i = 0; i < JSONWords.length; i++) {
-		for (let j = 0; j < JSONWords[i].length; j++) {
-			let conjugations = getAllConjugations(JSONWords[i][j]);
-			for (let k = 0; k < conjugations.length; k++) {
-				wordList[i].push(new Word(JSONWords[i][j], conjugations[k]));
+	let wordList = {};
+	for (const [key, value] of Object.entries(JSONWords)) {
+		wordList[key] = [];
+		for (let i = 0; i < value.length; i++) {
+			let conjugations = getAllConjugations(value[i]);
+			for (let j = 0; j < conjugations.length; j++) {
+				wordList[key].push(new Word(value[i], conjugations[j]));
 			}
 		}
 	}
@@ -1449,17 +1436,15 @@ function pickRandomWord(wordList) {
 
 	try {
 		for (let i = 0; i < wordList.length; i++) {
-			for (let j = 0; j < wordList[i].length; j++) {
-				if (random < wordList[i][j].probability) {
-					return wordList[i][j];
-				}
-				random -= wordList[i][j].probability;
+			if (random < wordList[i].probability) {
+				return wordList[i];
 			}
+			random -= wordList[i].probability;
 		}
 		throw "no random word chosen";
 	} catch (err) {
 		console.error(err);
-		return wordList[0][0];
+		return wordList[0];
 	}
 }
 
@@ -1584,10 +1569,8 @@ export class MaxScoreObject {
 	}
 }
 
-// Array index 0 = verbs, 1 = adjectives
-// Stored in an array instead of object to make parsing faster. Upon reflection this was not worth it.
 function initApp() {
-	new ConjugationApp([wordData.verbs, wordData.adjectives]);
+	new ConjugationApp(wordData);
 }
 
 class ConjugationApp {

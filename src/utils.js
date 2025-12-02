@@ -13,11 +13,3 @@ function toggleClassName(element, className, enabled) {
 		element.classList.remove(className);
 	}
 }
-
-export function createArrayOfArrays(length) {
-	let array = new Array(length);
-	for (let i = 0; i < array.length; i++) {
-		array[i] = [];
-	}
-	return array;
-}
