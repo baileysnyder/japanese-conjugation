@@ -454,6 +454,9 @@ const questionRemoveFilters = {
 		verbimperative: function (word) {
 			return word.conjugation.type !== CONJUGATION_TYPES.imperative;
 		},
+		verbcausativepassive: function (word) {
+			return word.conjugation.type !== CONJUGATION_TYPES.causativePassive;
+		},
 
 		verbaffirmative: function (word) {
 			return word.conjugation.affirmative !== true;
