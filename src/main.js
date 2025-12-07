@@ -1335,7 +1335,7 @@ function updateProbabilites(
 
 	// If the number of current verb + adjective conjugations is less than roundsToWait + 1,
 	// the pool of conjugations is too small for our wordsRecentlySeenQueue to work.
-	if (currentWords[0].length + currentWords[1].length < roundsToWait + 1) {
+	if (currentWords.length < roundsToWait + 1) {
 		// Set all probabilities except the current word to be equal to avoid getting the same question twice
 		setAllProbabilitiesToValue(currentWords, 1);
 		currentWord.probability = 0;
@@ -1348,10 +1348,7 @@ function updateProbabilites(
 		const currentConjugation = currentWord.conjugation;
 		const group = currentWord.wordJSON.group;
 
-		currentWords[
-			getPartOfSpeech(currentWord.wordJSON) === PARTS_OF_SPEECH.verb ? 0 : 1
-		]
-			.filter((word) => {
+		currentWords.filter((word) => {
 				const conjugation = word.conjugation;
 				// Only alter probabilities of the exact same conjugation for other words in the group
 				return (
