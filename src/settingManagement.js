@@ -1,5 +1,5 @@
 import { CONJUGATION_TYPES, PARTS_OF_SPEECH } from "./wordEnums.js";
-import { toggleDisplayNone, createArrayOfArrays } from "./utils.js";
+import { toggleDisplayNone } from "./utils.js";
 
 // Enum for radio options that conditionally show/hide UI elements
 export const CONDITIONAL_UI_TIMINGS = Object.freeze({
@@ -384,12 +384,11 @@ export function applyNonConjugationSettings(settings) {
 export function applyAllSettingsFilterWords(settings, completeWordList) {
 	applyNonConjugationSettings(settings);
 
-	let currentWordList = createArrayOfArrays(completeWordList.length);
-
+	let verbs = [];
 	const verbRegex = /^verb.+/;
 	if (settings.verb !== false) {
 		// Copy all of the verbs over
-		currentWordList[0] = [...completeWordList[0]];
+		verbs = [...completeWordList.verbs];
 
 		let verbOptions = Object.keys(settings).filter((el) =>
 			verbRegex.test(el)
@@ -397,17 +396,18 @@ export function applyAllSettingsFilterWords(settings, completeWordList) {
 		// Filter out the verbs we don't want
 		for (let i = 0; i < verbOptions.length; i++) {
 			if (settings[verbOptions[i]] === false) {
-				currentWordList[0] = currentWordList[0].filter(
+				verbs = verbs.filter(
 					questionRemoveFilters.verbs[verbOptions[i]]
 				);
 			}
 		}
 	}
 
+	let adjectives = [];
 	const adjectiveRegex = /^adjective.+/;
 	if (settings.adjective !== false) {
 		// Copy all of the adjectives over
-		currentWordList[1] = [...completeWordList[1]];
+		adjectives = [...completeWordList.adjectives];
 
 		let adjectiveOptions = Object.keys(settings).filter((el) =>
 			adjectiveRegex.test(el)
@@ -415,14 +415,14 @@ export function applyAllSettingsFilterWords(settings, completeWordList) {
 		// Filter out the adjectives we don't want
 		for (let i = 0; i < adjectiveOptions.length; i++) {
 			if (settings[adjectiveOptions[i]] === false) {
-				currentWordList[1] = currentWordList[1].filter(
+				adjectives = adjectives.filter(
 					questionRemoveFilters.adjectives[adjectiveOptions[i]]
 				);
 			}
 		}
 	}
 
-	return currentWordList;
+	return verbs.concat(adjectives);
 }
 
 // The input to these functions is a "Word" object defined in main.js.
