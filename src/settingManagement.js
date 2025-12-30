@@ -1,4 +1,9 @@
-import { CONJUGATION_TYPES, PARTS_OF_SPEECH } from "./wordEnums.js";
+import {
+	CONJUGATION_TYPES,
+	orderedMaxScoreSettings,
+	PARTS_OF_SPEECH,
+} from "./constants.js";
+import { MaxScoreObject } from "./main.js";
 import { toggleDisplayNone } from "./utils.js";
 
 // Enum for radio options that conditionally show/hide UI elements
@@ -396,9 +401,7 @@ export function applyAllSettingsFilterWords(settings, completeWordList) {
 		// Filter out the verbs we don't want
 		for (let i = 0; i < verbOptions.length; i++) {
 			if (settings[verbOptions[i]] === false) {
-				verbs = verbs.filter(
-					questionRemoveFilters.verbs[verbOptions[i]]
-				);
+				verbs = verbs.filter(questionRemoveFilters.verbs[verbOptions[i]]);
 			}
 		}
 	}
@@ -520,29 +523,55 @@ const questionRemoveFilters = {
 };
 
 /**
- * Searches the maxScoreObjects array for a maxScoreObject with specified settings.
- * Make sure visibleConjugationSettings doesn't contain any settings that aren't tied to max score (like "Show English translations" for example)
+ * Calculates a unique identifier for the combination of conjugation settings passed in.
+ * This is intended to be used as a key on the "maxScoreObjectsV2" object in localStorage.
  *
- * @param {Array<MaxScoreObject>} maxScoreObjects
- * @param {Object} visibleConjugationSettings
- * @returns The index where the match was found. If no match was found, returns -1.
+ * @param {Object} settings An object mapping setting names to booleans. Can include any settings on the options screen - the function will filter out irrelevant settings.
+ * @returns A string representation of a number value that uniquely identifies this combination of conjugation settings.
  */
-export function findMaxScoreIndex(maxScoreObjects, visibleConjugationSettings) {
-	let settingKeys = Object.keys(visibleConjugationSettings);
-	let flag;
-	for (let i = 0; i < maxScoreObjects.length; i++) {
-		flag = true;
-		for (let s of settingKeys) {
-			if (maxScoreObjects[i].settings[s] != visibleConjugationSettings[s]) {
-				flag = false;
-				break;
-			}
+export function calculateMaxScoreIndex(settings) {
+	// We use bigint because
+	// 1) bitwise operators can only be performed on 32 bit binary numbers
+	// 2) even if we worked around the bitwise operators, JavaScript Numbers max out at 53 bits for integers,
+	//    which breaks this logic if there were ever more than 53 settings.
+	let bitFlipMask = 1n;
+	let maxScoreIndex = 0n;
+
+	// We only want to consider visible settings,
+	// because otherwise you'd have different max scores based on the values of the hidden settings
+	const visibleConjugationSettings = getVisibleConjugationSettings(settings);
+
+	// Each setting has a corresponding bit in the final maxScoreIndex, determined by its index in orderedMaxScoreSettings.
+	// If the setting is turned on, flip the bit from a 0 to a 1.
+	for (const setting of orderedMaxScoreSettings) {
+		if (visibleConjugationSettings[setting]) {
+			maxScoreIndex = maxScoreIndex | bitFlipMask;
 		}
-		if (flag == true) {
-			return i;
+		bitFlipMask = bitFlipMask << 1n;
+	}
+
+	return maxScoreIndex.toString();
+}
+
+// The old maxScoreObjects logic was losing scores whenever we added a new conjugation type.
+// This function converts old maxScoreObjects to the leaner and more robust maxScoreObjectsV2.
+// See https://github.com/baileysnyder/japanese-conjugation/issues/50
+export function convertMaxScoreObjectsToV2(maxScoreObjects) {
+	const maxScoreObjectsV2 = {};
+	for (const objectV1 of maxScoreObjects) {
+		const indexV2 = calculateMaxScoreIndex(objectV1.settings);
+
+		if (maxScoreObjectsV2[indexV2] == null) {
+			maxScoreObjectsV2[indexV2] = new MaxScoreObject(0);
+		}
+
+		// There may have been duplicate combinations of settings used to track scores in V1.
+		// For V2, take the largest score of any duplicates.
+		if (maxScoreObjectsV2[indexV2].score < objectV1.score) {
+			maxScoreObjectsV2[indexV2].score = objectV1.score;
 		}
 	}
-	return -1;
+	return maxScoreObjectsV2;
 }
 
 export const showEmojis = function (show) {
@@ -688,24 +717,59 @@ export function insertSettingsFromUi(settings) {
 }
 
 /**
- * Get a settings object that only contains the settings that are currently visible on the screen.
- * Useful for storing max score objects which want as little information as possible since they are stored in localStorage.
+ * Prunes non-conjugation settings, and also prunes whatever conjugation settings would be hidden on the options screen.
+ *
+ * @param {Object} allSettings An object mapping setting names to booleans.
  */
-export function getVisibleConjugationSettings() {
-	const visibleConjugationSettings = {};
-	const checkboxInputs = document.querySelectorAll(
-		'#options-form input[type="checkbox"]'
-	);
+export function getVisibleConjugationSettings(allSettings) {
+	// Remove non-conjugation settings and make a deep copy
+	const visibleSettings = removeNonConjugationSettings(allSettings);
 
-	for (let input of Array.from(checkboxInputs)) {
-		if (
-			input.offsetWidth > 0 &&
-			input.offsetHeight > 0 &&
-			!nonConjugationSettings.has(input.name)
-		) {
-			visibleConjugationSettings[input.name] = input.checked;
+	// Helper to see if any DOM elements with the given class are turned on in visibleSettings
+	function isSomeSettingOn(inputClass) {
+		const settingsThatTriggerVariations = Array.from(
+			document.getElementsByClassName(inputClass)
+		).map((el) => el.getAttribute("name"));
+
+		return settingsThatTriggerVariations.some(
+			(setting) => visibleSettings[setting]
+		);
+	}
+
+	if (!visibleSettings.verb) {
+		// Remove all verb settings (expect the base ["verb": false] setting)
+		const verbRegex = /^verb.+/;
+		for (const settingName of Object.keys(visibleSettings)) {
+			if (verbRegex.test(settingName)) {
+				delete visibleSettings[settingName];
+			}
+		}
+	} else if (!isSomeSettingOn("verb-has-variations")) {
+		// We know we can at least remove the affirmative and negative settings,
+		// but we need to make an extra check for plain and polite
+		delete visibleSettings.verbaffirmative;
+		delete visibleSettings.verbnegative;
+
+		if (!isSomeSettingOn("verb-has-politeness")) {
+			delete visibleSettings.verbplain;
+			delete visibleSettings.verbpolite;
 		}
 	}
 
-	return visibleConjugationSettings;
+	if (!visibleSettings.adjective) {
+		// Remove all adjective settings (expect the base ["adjective": false] setting)
+		const adjectiveRegex = /^adjective.+/;
+		for (const settingName of Object.keys(visibleSettings)) {
+			if (adjectiveRegex.test(settingName)) {
+				delete visibleSettings[settingName];
+			}
+		}
+	} else if (!isSomeSettingOn("adjective-has-variations")) {
+		delete visibleSettings.adjectiveaffirmative;
+		delete visibleSettings.adjectivenegative;
+		delete visibleSettings.adjectiveplain;
+		delete visibleSettings.adjectivepolite;
+	}
+
+	return visibleSettings;
 }

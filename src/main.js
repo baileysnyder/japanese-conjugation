@@ -5,11 +5,8 @@ import { bind, isJapanese } from "wanakana";
 import {
 	CONDITIONAL_UI_TIMINGS,
 	getDefaultSettings,
-	getVisibleConjugationSettings,
-	removeNonConjugationSettings,
 	showFurigana,
 	showTranslation,
-	findMaxScoreIndex,
 	applyAllSettingsFilterWords,
 	applyNonConjugationSettings,
 	optionsMenuInit,
@@ -17,13 +14,12 @@ import {
 	showHideOptionsAndCheckErrors,
 	insertSettingsFromUi,
 	getDefaultAdditiveSettings,
+	calculateMaxScoreIndex,
+	convertMaxScoreObjectsToV2,
 } from "./settingManagement.js";
 import { wordData } from "./wordData.js";
-import { CONJUGATION_TYPES, PARTS_OF_SPEECH } from "./wordEnums.js";
-import {
-	toggleDisplayNone,
-	toggleBackgroundNone,
-} from "./utils.js";
+import { CONJUGATION_TYPES, PARTS_OF_SPEECH } from "./constants.js";
+import { toggleDisplayNone, toggleBackgroundNone } from "./utils.js";
 
 const isTouch = "ontouchstart" in window || navigator.msMaxTouchPoints > 0;
 document.getElementById("press-any-key-text").textContent = isTouch
@@ -712,7 +708,7 @@ function plainNegativeComplete(hiraganaVerb, type) {
 	return type == "u"
 		? hiraganaVerb.substring(0, hiraganaVerb.length - 1) +
 				changeUtoA(hiraganaVerb.charAt(hiraganaVerb.length - 1)) +
-			  	"ない"
+				"ない"
 		: hiraganaVerb.substring(0, hiraganaVerb.length - 1) + "ない";
 }
 
@@ -992,7 +988,9 @@ const conjugationFunctions = {
 					causativePassiveRoot.push(root + "され");
 				}
 			} else if (type === "ru") {
-				causativePassiveRoot.push(dropFinalLetter(baseVerbText) + "させられ");
+				causativePassiveRoot.push(
+					dropFinalLetter(baseVerbText) + "させられ"
+				);
 			}
 			if (affirmative && polite) {
 				return causativePassiveRoot.map((r) => r + "ます");
@@ -1333,10 +1331,10 @@ class WordRecentlySeen {
 function findMinProb(currentWords) {
 	let min = 2;
 	for (let i = 0; i < currentWords.length; i++) {
-		min = currentWords[i].probability < min &&
-			currentWords[i].probability != 0
-			? currentWords[i].probability
-			: min;
+		min =
+			currentWords[i].probability < min && currentWords[i].probability != 0
+				? currentWords[i].probability
+				: min;
 	}
 	return min;
 }
@@ -1344,9 +1342,8 @@ function findMinProb(currentWords) {
 function findMaxProb(currentWords) {
 	let max = 0;
 	for (let i = 0; i < currentWords.length; i++) {
-		max = currentWords[i].probability > max
-			? currentWords[i].probability
-			: max;
+		max =
+			currentWords[i].probability > max ? currentWords[i].probability : max;
 	}
 	return max;
 }
@@ -1402,7 +1399,8 @@ function updateProbabilites(
 		const currentConjugation = currentWord.conjugation;
 		const group = currentWord.wordJSON.group;
 
-		currentWords.filter((word) => {
+		currentWords
+			.filter((word) => {
 				const conjugation = word.conjugation;
 				// Only alter probabilities of the exact same conjugation for other words in the group
 				return (
@@ -1518,7 +1516,10 @@ function addToScore(amount = 1, maxScoreObjects, maxScoreIndex) {
 		}
 
 		maxScoreObjects[maxScoreIndex].score = newAmount;
-		localStorage.setItem("maxScoreObjects", JSON.stringify(maxScoreObjects));
+		localStorage.setItem(
+			"maxScoreObjectsV2",
+			JSON.stringify(maxScoreObjects)
+		);
 	}
 
 	current.textContent = parseInt(current.textContent) + amount;
@@ -1612,11 +1613,10 @@ function getSubConjugationForm(word, validAnswer) {
 	return null;
 }
 
-// stored in array in local storage
+// Used to store max streaks in localStorage
 export class MaxScoreObject {
-	constructor(score, settings) {
+	constructor(score) {
 		this.score = score;
-		this.settings = settings;
 	}
 }
 
@@ -1830,25 +1830,17 @@ class ConjugationApp {
 		insertSettingsFromUi(this.state.settings);
 		localStorage.setItem("settings", JSON.stringify(this.state.settings));
 
-		const visibleConjugationSettings = getVisibleConjugationSettings();
-		let newMaxScoreIndex = findMaxScoreIndex(
-			this.state.maxScoreObjects,
-			visibleConjugationSettings
-		);
+		let newMaxScoreIndex = calculateMaxScoreIndex(this.state.settings);
 
-		if (newMaxScoreIndex === -1) {
-			this.state.maxScoreObjects.push(
-				new MaxScoreObject(0, visibleConjugationSettings)
-			);
+		if (this.state.maxScoreObjects[newMaxScoreIndex] == null) {
+			this.state.maxScoreObjects[newMaxScoreIndex] = new MaxScoreObject(0);
 			localStorage.setItem(
-				"maxScoreObjects",
+				"maxScoreObjectsV2",
 				JSON.stringify(this.state.maxScoreObjects)
 			);
-			newMaxScoreIndex = this.state.maxScoreObjects.length - 1;
 		}
 
 		if (newMaxScoreIndex !== this.state.maxScoreIndex) {
-			localStorage.setItem("maxScoreIndex", newMaxScoreIndex);
 			this.state.maxScoreIndex = newMaxScoreIndex;
 			this.state.currentStreak0OnReset = true;
 			this.state.loadWordOnReset = true;
@@ -1878,38 +1870,57 @@ class ConjugationApp {
 		this.state = {};
 		this.state.completeWordList = createWordList(words);
 
+		// If they have none or only some of the expected localStorage objects,
+		// just set everything to their default values
 		if (
-			!localStorage.getItem("maxScoreObjects") ||
-			!localStorage.getItem("maxScoreIndex") ||
-			!localStorage.getItem("settings")
+			!localStorage.getItem("settings") ||
+			(!localStorage.getItem("maxScoreObjects") &&
+				!localStorage.getItem("maxScoreObjectsV2"))
 		) {
-			this.state.maxScoreIndex = 0;
-			localStorage.setItem("maxScoreIndex", this.state.maxScoreIndex);
-
 			this.state.settings = getDefaultSettings();
 			localStorage.setItem("settings", JSON.stringify(this.state.settings));
 
-			this.state.maxScoreObjects = [
-				new MaxScoreObject(
-					0,
-					removeNonConjugationSettings(this.state.settings)
-				),
-			];
+			this.state.maxScoreIndex = calculateMaxScoreIndex(this.state.settings);
+
+			this.state.maxScoreObjects = {};
+			this.state.maxScoreObjects[this.state.maxScoreIndex] =
+				new MaxScoreObject(0);
 			localStorage.setItem(
-				"maxScoreObjects",
+				"maxScoreObjectsV2",
 				JSON.stringify(this.state.maxScoreObjects)
 			);
 		} else {
-			this.state.maxScoreIndex = parseInt(
-				localStorage.getItem("maxScoreIndex")
-			);
 			this.state.settings = Object.assign(
 				getDefaultAdditiveSettings(),
 				JSON.parse(localStorage.getItem("settings"))
 			);
-			this.state.maxScoreObjects = JSON.parse(
-				localStorage.getItem("maxScoreObjects")
-			);
+
+			this.state.maxScoreIndex = calculateMaxScoreIndex(this.state.settings);
+
+			// If they have the "V1" maxScoreObjects, we need to update to V2
+			const scoresV1 = localStorage.getItem("maxScoreObjects");
+			if (scoresV1 != null) {
+				const scoresV2 = convertMaxScoreObjectsToV2(JSON.parse(scoresV1));
+
+				// If things converted correctly there should always be a MaxScoreObject for this maxScoreIndex, but check just in case
+				if (scoresV2[this.state.maxScoreIndex] == null) {
+					scoresV2[this.state.maxScoreIndex] = new MaxScoreObject(0);
+				}
+
+				this.state.maxScoreObjects = scoresV2;
+				localStorage.setItem(
+					"maxScoreObjectsV2",
+					JSON.stringify(this.state.maxScoreObjects)
+				);
+
+				// Remove stale data
+				localStorage.removeItem("maxScoreObjects");
+				localStorage.removeItem("maxScoreIndex");
+			} else {
+				this.state.maxScoreObjects = JSON.parse(
+					localStorage.getItem("maxScoreObjectsV2")
+				);
+			}
 		}
 
 		this.applySettingsUpdateWordList();
