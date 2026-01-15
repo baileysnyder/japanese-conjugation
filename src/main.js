@@ -32,6 +32,7 @@ const SCREENS = Object.freeze({
 	// Incorrect and correct answers are considered the same "results" screen
 	results: 1,
 	settings: 2,
+	stats: 3
 });
 
 function wordTypeToDisplayText(type) {
@@ -48,10 +49,13 @@ function wordTypeToDisplayText(type) {
 	}
 }
 
-function conjugationInqueryFormatting(conjugation) {
+function conjugationInqueryFormatting(conjugation, emojisOnly = false) {
 	let newString = "";
 
 	function createInqueryText(text, emoji) {
+		if (emojisOnly) {
+			return emoji;
+		}
 		return `<div class="conjugation-inquery"><div class="inquery-emoji">${emoji}</div><div class="inquery-text">${text}</div></div> `;
 	}
 
@@ -98,8 +102,8 @@ function changeVerbBoxFontColor(color) {
 	}
 }
 
-function loadNewWord(wordList) {
-	let word = pickRandomWord(wordList);
+function loadNewWord(wordList, normalized) {
+	let word = pickRandomWord(wordList, normalized);
 	updateCurrentWord(word);
 	changeVerbBoxFontColor("rgb(232, 232, 232)");
 	return word;
@@ -1318,6 +1322,92 @@ class Word {
 		this.probability = 0;
 		// wasRecentlyIncorrect is used when calculating probability
 		this.wasRecentlyIncorrect = false;
+		// Weights for recency of responses when calculating speed score
+		this.recencyWeights = [10, 3, 1];
+		// Response times in ms for this word
+		this.responseTimesMs = [];
+	}
+
+	addResponseTime(inputWasCorrect, responseTimeMs) {
+		let maxResponseTimeSlots = this.recencyWeights.length;
+		if (inputWasCorrect) {
+			this.responseTimesMs.push(responseTimeMs);
+		} else {
+			this.responseTimesMs.push(Number.MAX_SAFE_INTEGER);
+		}
+		// Delete the oldest response time if we are full
+		if (this.responseTimesMs.length > maxResponseTimeSlots) {
+			this.responseTimesMs.shift()
+		}
+	}
+
+	getSpeedScore() {
+		// Response times are converted to response type answer scores as
+		// follows:
+		//
+		// FAST_RESPONSE     3 answer was correct with a fast response time
+		// MEDIUM_RESPONSE   2 answer was correct with a medium response time
+		// SLOW_RESPONSE     1 answer was correct with a slow response time
+		// WRONG_RESPONSE  -10 answer was incorrect
+		//
+		// The three most recent response type speed scores are combined into
+		// a total speed score by multiplying the most recent score by 10,
+		// the next most recent by 3, and the oldest by 1, and summing the
+		// result.
+		//
+		// Example speed scores:
+		//
+		// answered thrice with FAST_RESPONSE                  [3, 3, 3] -> 42
+		// answered thrice with improving response each time   [1, 2, 3] -> 37
+		// answered once with FAST_RESPONSE                          [3] -> 30
+		// answered twice with MEDIUM_RESPONSE                    [2, 2] -> 26
+		// answered once with SLOW_RESPONSE                          [1] -> 10
+		// word not seen yet                                          [] -> 0
+		// answered WRONG_RESPONSE after two FAST_RESPONSES  [3, 3, -10] -> -88
+		// answered once with WRONG_RESPONSE                       [-10] -> -100
+		// answered thrice with WRONG_RESPONSE           [-10, -10, -10] -> -140
+		//
+		let wordLength = this.conjugation.validAnswers[0].length;
+		let responseTimesMsCopy = structuredClone(this.responseTimesMs);
+		let score = 0;
+		for (let i = 0; i < this.recencyWeights.length; i++) {
+			let responseTimeMs = responseTimesMsCopy.pop();
+			if (responseTimeMs === undefined) {
+				break;
+			}
+			let responseType = getResponseTypeFromTimeMs(
+				responseTimeMs,
+				wordLength
+			);
+			score += responseType.answerScore * this.recencyWeights[i];
+		}
+		return score;
+	}
+
+	getSpeedProbabilityWeight() {
+		// The probability weights when using the default streak scoring is
+		// calculated by halving the probability weight of word each time it is
+		// answered correctly. Three correct answers in a row would approximately
+		// reduce the probability weight to 1/8 (2**-3) of the original value.
+		// For incorrect answers, the probability weight is set to an arbitrarily
+		// high value, which in practice results increases the probability weight
+		// several hundredfold.
+		//
+		// The probability weights when using speed scoring attempt to match this
+		// behavior. The score to probabilty weight calculation is similarly
+		// exponential rather than linear. A formula of 2**(-score/10), results in
+		// the following score to probability weight values:
+		//
+		// [3, 3, 3]       -> score: 42    probability weight: 0.0544  ~1/20
+		// [1, 2, 3]       -> score: 37    probability weight: 0.0769  ~1/13
+		// [3]             -> score: 30    probability weight: 0.125    1/8
+		// [2, 2]          -> score: 26    probability weight: 0.165   ~1/6
+		// [1]             -> score: 10    probability weight: 0.5      1/4
+		// []              -> score: 0     probability weight: 1
+		// [3, 3, -10]     -> score: -88   probability weight: 445
+		// [-10]           -> score: -100  probability weight: 1024
+		// [-10, -10, -10] -> score: -140  probability weight: 16384
+		return 2 ** (-this.getSpeedScore() / 10);
 	}
 }
 
@@ -1367,102 +1457,338 @@ function setAllProbabilitiesToValue(currentWords, value) {
 	}
 }
 
-// Sets all of the probabilities to the same normalized value
-function equalizeProbabilities(currentWords) {
-	setAllProbabilitiesToValue(currentWords, 1);
+class StreakScorer {
+	normalized = true;
 
-	// Now that all of the probabilities are equal,
-	// normalize them so together they all add up to 1.
-	normalizeProbabilities(currentWords);
-}
-
-function updateProbabilites(
-	currentWords,
-	wordsRecentlySeenQueue,
-	currentWord,
-	currentWordWasCorrect
-) {
-	const roundsToWait = 2;
-
-	// If the number of current verb + adjective conjugations is less than roundsToWait + 1,
-	// the pool of conjugations is too small for our wordsRecentlySeenQueue to work.
-	if (currentWords.length < roundsToWait + 1) {
-		// Set all probabilities except the current word to be equal to avoid getting the same question twice
+	// Sets all of the probabilities to the same value
+	equalizeProbabilities(currentWords) {
 		setAllProbabilitiesToValue(currentWords, 1);
-		currentWord.probability = 0;
+		// Now that all of the probabilities are equal,
+		// normalize them so together they all add up to 1.
 		normalizeProbabilities(currentWords);
-		return;
 	}
 
-	// Lower probability of running into words in the same group
-	if (currentWord.wordJSON.group) {
-		const currentConjugation = currentWord.conjugation;
-		const group = currentWord.wordJSON.group;
+	updateProbabilites(
+		currentWords,
+		wordsRecentlySeenQueue,
+		currentWord,
+		currentWordWasCorrect
+	) {
+		const roundsToWait = 2;
 
-		currentWords
-			.filter((word) => {
-				const conjugation = word.conjugation;
-				// Only alter probabilities of the exact same conjugation for other words in the group
-				return (
-					word.wordJSON.group === group &&
-					word !== currentWord &&
-					conjugation.type === currentConjugation.type &&
-					conjugation.affirmative === currentConjugation.affirmative &&
-					conjugation.polite === currentConjugation.polite
-				);
-			})
-			.forEach((word) => {
-				// Have to be careful with lowering this too much, because it can affect findMinProb for other conjugations.
-				// Also, lowering it by a lot will make all of these words appear in a cluster after all the other words have been seen.
-				// Note that this is happening whether currentWordWasCorrect is true or false,
-				// so if someone got currentWord wrong many times it would tank the probabilities in this forEach over time.
-				word.probability /= 3;
-			});
-	}
-
-	// We wait "roundsToWait" rounds to set the probability of questions.
-	// This allows us to have a few rounds immediately after a question where it's guaranteed to not appear again,
-	// followed by the ability to set a high probability for the question to show up immediately after that waiting period (if the answer was incorrect).
-	if (wordsRecentlySeenQueue.length >= roundsToWait) {
-		let dequeuedWord = wordsRecentlySeenQueue.shift();
-		// Using findMinProb isn't a good solution because if you get one correct it's going to shrink the min prob a lot and affect future questions you get right or wrong.
-		// In the future there should probably be a static probability given to corrects, incorrects, and unseens, where that probability slowly grows the longer the word hasn't been seen.
-		let currentMinProb = findMinProb(currentWords);
-		const correctProbModifier = 0.5;
-		const incorrectProbModifier = 0.85;
-
-		let newProbability;
-
-		if (dequeuedWord.wasCorrect && !dequeuedWord.word.wasRecentlyIncorrect) {
-			newProbability = currentMinProb * correctProbModifier;
-		} else if (
-			dequeuedWord.wasCorrect &&
-			dequeuedWord.word.wasRecentlyIncorrect
-		) {
-			newProbability = currentMinProb * incorrectProbModifier;
-			dequeuedWord.word.wasRecentlyIncorrect = false;
-		} else if (!dequeuedWord.wasCorrect) {
-			// Set to an arbitrary high number to (nearly) guarantee this question is asked next.
-			newProbability = 10;
+		// If the number of current verb + adjective conjugations is less than roundsToWait + 1,
+		// the pool of conjugations is too small for our wordsRecentlySeenQueue to work.
+		if (currentWords.length < roundsToWait + 1) {
+			// Set all probabilities except the current word to be equal to avoid getting the same question twice
+			setAllProbabilitiesToValue(currentWords, 1);
+			currentWord.probability = 0;
+			normalizeProbabilities(currentWords);
+			return;
 		}
 
-		dequeuedWord.word.probability = newProbability;
+		// Lower probability of running into words in the same group
+		if (currentWord.wordJSON.group) {
+			const currentConjugation = currentWord.conjugation;
+			const group = currentWord.wordJSON.group;
+
+			currentWords
+				.filter((word) => {
+					const conjugation = word.conjugation;
+					// Only alter probabilities of the exact same conjugation for other words in the group
+					return (
+						word.wordJSON.group === group &&
+						word !== currentWord &&
+						conjugation.type === currentConjugation.type &&
+						conjugation.affirmative === currentConjugation.affirmative &&
+						conjugation.polite === currentConjugation.polite
+					);
+				})
+				.forEach((word) => {
+					// Have to be careful with lowering this too much, because it can affect findMinProb for other conjugations.
+					// Also, lowering it by a lot will make all of these words appear in a cluster after all the other words have been seen.
+					// Note that this is happening whether currentWordWasCorrect is true or false,
+					// so if someone got currentWord wrong many times it would tank the probabilities in this forEach over time.
+					word.probability /= 3;
+				});
+		}
+
+		// We wait "roundsToWait" rounds to set the probability of questions.
+		// This allows us to have a few rounds immediately after a question where it's guaranteed to not appear again,
+		// followed by the ability to set a high probability for the question to show up immediately after that waiting period (if the answer was incorrect).
+		if (wordsRecentlySeenQueue.length >= roundsToWait) {
+			let dequeuedWord = wordsRecentlySeenQueue.shift();
+			// Using findMinProb isn't a good solution because if you get one correct it's going to shrink the min prob a lot and affect future questions you get right or wrong.
+			// In the future there should probably be a static probability given to corrects, incorrects, and unseens, where that probability slowly grows the longer the word hasn't been seen.
+			let currentMinProb = findMinProb(currentWords);
+			const correctProbModifier = 0.5;
+			const incorrectProbModifier = 0.85;
+
+			let newProbability;
+
+			if (dequeuedWord.wasCorrect && !dequeuedWord.word.wasRecentlyIncorrect) {
+				newProbability = currentMinProb * correctProbModifier;
+			} else if (
+				dequeuedWord.wasCorrect &&
+				dequeuedWord.word.wasRecentlyIncorrect
+			) {
+				newProbability = currentMinProb * incorrectProbModifier;
+				dequeuedWord.word.wasRecentlyIncorrect = false;
+			} else if (!dequeuedWord.wasCorrect) {
+				// Set to an arbitrary high number to (nearly) guarantee this question is asked next.
+				newProbability = 10;
+			}
+
+			dequeuedWord.word.probability = newProbability;
+		}
+
+		// Keep track of misses so when the user finally gets it right,
+		// we can still give it a higher probability of appearing again than
+		// questions they got right on the first try.
+		if (!currentWordWasCorrect) {
+			currentWord.wasRecentlyIncorrect = true;
+		}
+
+		wordsRecentlySeenQueue.push(
+			new WordRecentlySeen(currentWord, currentWordWasCorrect)
+		);
+		// Make sure the user will not see the current question until at least "roundsToWait" number of rounds
+		currentWord.probability = 0;
+
+		normalizeProbabilities(currentWords);
 	}
 
-	// Keep track of misses so when the user finally gets it right,
-	// we can still give it a higher probability of appearing again than
-	// questions they got right on the first try.
-	if (!currentWordWasCorrect) {
-		currentWord.wasRecentlyIncorrect = true;
+	positiveStatusEmojis(word) {
+		return "";
 	}
 
-	wordsRecentlySeenQueue.push(
-		new WordRecentlySeen(currentWord, currentWordWasCorrect)
+	negativeStatusEmojis(word) {
+		return " x";
+	}
+}
+
+class SpeedScorer {
+	normalized = false;
+
+	// Sets all of the probabilities to the same value
+	equalizeProbabilities(currentWords) {
+		setAllProbabilitiesToValue(currentWords, 1);
+	}
+
+	updateProbabilites(
+		currentWords,
+		wordsRecentlySeenQueue,
+		currentWord,
+		currentWordWasCorrect
+	) {
+		const roundsToWait = 2;
+
+		// If the number of current verb + adjective conjugations is less than roundsToWait + 1,
+		// the pool of conjugations is too small for our wordsRecentlySeenQueue to work.
+		if (currentWords.length < roundsToWait + 1) {
+			// Set all probabilities except the current word to be equal to avoid getting the same question twice
+			this.equalizeProbabilities(currentWords);
+			currentWord.probability = 0;
+			return;
+		}
+		// We wait "roundsToWait" rounds to set the probability of questions.
+		// This allows us to have a few rounds immediately after a question where it's guaranteed to not appear again,
+		// followed by the ability to set a high probability for the question to show up immediately after that waiting period (if the answer was incorrect).
+		if (wordsRecentlySeenQueue.length >= roundsToWait) {
+			let dequeuedWord = wordsRecentlySeenQueue.shift();
+			let probabilityWeight = dequeuedWord.word.getSpeedProbabilityWeight();
+			dequeuedWord.word.probability = probabilityWeight
+		}
+
+		wordsRecentlySeenQueue.push(
+			new WordRecentlySeen(currentWord, currentWordWasCorrect)
+		);
+
+		// Make sure the user will not see the current question until at least "roundsToWait" number of rounds
+		currentWord.probability = 0;
+	}
+
+	positiveStatusEmojis(word) {
+		return " " + getSpeedEmojisForWord(word);
+	}
+
+	negativeStatusEmojis(word) {
+		return " " + getSpeedEmojisForWord(word);
+	}
+}
+
+function clearResponseTimes(currentWords) {
+    for (let i = 0; i < currentWords.length; i++) {
+        currentWords[i].responseTimesMs = [];
+    }
+}
+
+class ResponseTypes {
+    constructor(text, emoji, answerScore) {
+        this.text = text;
+        this.emoji = emoji;
+        this.answerScore = answerScore;
+    }
+}
+
+const FAST_RESPONSE = new ResponseTypes("fast", "🐇", 3);
+const MEDIUM_RESPONSE = new ResponseTypes("medium", "🦔", 2);
+const SLOW_RESPONSE = new ResponseTypes("slow", "🐢", 1);
+const WRONG_RESPONSE = new ResponseTypes("wrong", "🐍", -10);
+
+function getResponseTypeFromTimeMs(responseTimeMs, wordLength) {
+    // A correct response is categorized as fast, medium, or slow,
+    // adjusted for word length to account for typing time.
+    const perCharacterTimeMs = 500;
+    const fastTimeMs = 1000;
+    const moderateTimeMs = 2500;
+    if (responseTimeMs == Number.MAX_SAFE_INTEGER) {
+        return WRONG_RESPONSE;
+    }
+    if (responseTimeMs <= fastTimeMs + perCharacterTimeMs * wordLength) {
+        return FAST_RESPONSE;
+    }
+    if (responseTimeMs <= moderateTimeMs + perCharacterTimeMs * wordLength) {
+        return MEDIUM_RESPONSE;
+    }
+    return SLOW_RESPONSE;
+}
+
+function updateScores(currentWordList, currentWord) {
+	let unseenScore = 0;
+	let wrongScore = 0;
+	let slowScore = 0;
+	let mediumScore = 0;
+	let fastScore = 0;
+	for (let i = 0; i < currentWordList.length; i++) {
+		let word = currentWordList[i];
+		if (word.responseTimesMs.length == 0) {
+			unseenScore++;
+			continue;
+		}
+		let responseType = getResponseTypeFromTimeMs(
+			word.responseTimesMs[word.responseTimesMs.length - 1],
+			word.conjugation.validAnswers[0].length
+		);
+		switch (responseType) {
+			case FAST_RESPONSE:
+				fastScore++;
+				break;
+			case MEDIUM_RESPONSE:
+				mediumScore++;
+				break;
+			case SLOW_RESPONSE:
+				slowScore++;
+				break;
+			case WRONG_RESPONSE:
+				wrongScore++;
+				break;
+		}
+	}
+
+	// Force grow animation on the score for the current word's response type
+	// even if the score doesn't change, to give feedback to the user.
+	let currentWordResponseType = null;
+	if (currentWord != null) {
+		currentWordResponseType = getResponseTypeFromTimeMs(
+			currentWord.responseTimesMs[currentWord.responseTimesMs.length - 1],
+			currentWord.conjugation.validAnswers[0].length
+		);
+	}
+	updateScoreText(
+		"unseen-score-text",
+		unseenScore,
+		false
 	);
-	// Make sure the user will not see the current question until at least "roundsToWait" number of rounds
-	currentWord.probability = 0;
+	updateScoreText(
+		"wrong-score-text",
+		wrongScore,
+		currentWordResponseType == WRONG_RESPONSE
+	);
+	updateScoreText(
+		"slow-score-text",
+		slowScore,
+		currentWordResponseType == SLOW_RESPONSE
+	);
+	updateScoreText(
+		"medium-score-text",
+		mediumScore,
+		currentWordResponseType == MEDIUM_RESPONSE
+	);
+	updateScoreText(
+		"fast-score-text",
+		fastScore,
+		currentWordResponseType == FAST_RESPONSE
+	);
+}
 
-	normalizeProbabilities(currentWords);
+function updateScoreText(id, score, forceGrow) {
+    let element = document.getElementById(id);
+    if (element.textContent != score) {
+        element.textContent = score;
+        element.classList.add("grow-animation");
+    } else if (forceGrow) {
+        element.classList.add("grow-animation");
+    }
+}
+
+function getSpeedEmojisForWord(word) {
+    let emojis = ""
+    for (let i = 0; i < word.responseTimesMs.length; i++) {
+        let responseType = getResponseTypeFromTimeMs(
+            word.responseTimesMs[i],
+            word.conjugation.validAnswers[0].length
+        );
+        emojis += responseType.emoji;
+    }
+    return emojis;
+}
+
+function loadStatsView(currentWords) {
+    const tableBody = document.getElementById("stats-table-body");
+    // clear existing rows
+    tableBody.replaceChildren();
+
+    // build row content
+    let rowData = []
+    for (let i = 0; i < currentWords.length; i++) {
+        let word = currentWords[i];
+        if (word.responseTimesMs.length == 0) {
+            continue;
+        }
+
+        let rowObject = {
+            kanji: toKanjiPlusHiragana(word.wordJSON.kanji),
+            hiragana: word.conjugation.validAnswers[0],
+            conjugation: conjugationInqueryFormatting(word.conjugation, true),
+            emojis: getSpeedEmojisForWord(word),
+            score: word.getSpeedScore(),
+        }
+        rowData.push(rowObject);
+    }
+
+    // sort by score descending; within that by kana reading
+    function sortFunction(a, b) {
+        let diff = b.score - a.score;
+        if (diff != 0) {
+            return diff;
+        }
+        return Intl.Collator("ja").compare(a.hiragana, b.hiragana);
+    }
+    rowData.sort(sortFunction);
+
+    // insert rows
+	let row = tableBody.insertRow();
+	row.insertCell().innerHTML = "<b>Kanji</b>";
+	row.insertCell().innerHTML = "<b>Conjugation</b>";
+	row.insertCell().innerHTML = "<b>Results</b>";
+	row.insertCell().innerHTML = "<b>Word Score</b>";
+    for (let i = 0; i < rowData.length; i++) {
+        let row = tableBody.insertRow();
+        row.insertCell().textContent = rowData[i].kanji;
+        row.insertCell().textContent = rowData[i].conjugation;
+        row.insertCell().textContent = rowData[i].emojis;
+        row.insertCell().textContent = rowData[i].score;
+    }
 }
 
 // returns new object with all conjugations
@@ -1480,9 +1806,15 @@ function createWordList(JSONWords) {
 	return wordList;
 }
 
-function pickRandomWord(wordList) {
+function pickRandomWord(wordList, normalized) {
 	let random = Math.random();
-
+	if (!normalized) {
+		let sum = 0;
+		for (let i = 0; i < wordList.length; i++) {
+			sum += wordList[i].probability;
+		}
+		random *= sum;
+	}
 	try {
 		for (let i = 0; i < wordList.length; i++) {
 			if (random < wordList[i].probability) {
@@ -1549,21 +1881,22 @@ function typeToWordBoxColor(type) {
 	}
 }
 
-function updateStatusBoxes(word, entryText) {
+function updateStatusBoxes(word, entryText, scorer) {
 	let statusBox = document.getElementById("status-box");
 	toggleDisplayNone(statusBox, false);
-
 	if (word.conjugation.validAnswers.some((e) => e == entryText)) {
+		let emojis = scorer.positiveStatusEmojis(word);
 		statusBox.style.background = "green";
 		const subConjugationForm = getSubConjugationForm(word, entryText);
 		document.getElementById("status-text").innerHTML = `Correct${
 			subConjugationForm != null
-				? '<span class="sub-conjugation-indicator">(' +
-				  subConjugationForm +
-				  ")</span>"
-				: ""
-		}<br>${entryText} ○`;
+			? '<span class="sub-conjugation-indicator">(' +
+			subConjugationForm +
+			")</span>"
+			: ""
+		}${emojis}<br>${entryText} ○`;
 	} else {
+		let emojis = scorer.negativeStatusEmojis(word);
 		document.getElementById("verb-box").style.background = typeToWordBoxColor(
 			word.wordJSON.type
 		);
@@ -1577,7 +1910,7 @@ function updateStatusBoxes(word, entryText) {
 		// Assuming validAnswers[0] is the hiragana answer
 		document.getElementById("status-text").innerHTML =
 			(entryText == "" ? "_" : entryText) +
-			" ×<br>" +
+			emojis + "<br>" +
 			word.conjugation.validAnswers[0] +
 			" ○";
 	}
@@ -1638,42 +1971,36 @@ class ConjugationApp {
 		document
 			.getElementById("options-form")
 			.addEventListener("submit", (e) => this.backButtonClicked(e));
-
 		document
-			.getElementById("current-streak-text")
-			.addEventListener("animationend", (e) => {
-				document
-					.getElementById("current-streak-text")
-					.classList.remove(e.animationName);
-			});
+			.getElementById("stats-button")
+			.addEventListener("click", (e) => this.statsButtonClicked(e));
 		document
-			.getElementById("max-streak-text")
-			.addEventListener("animationend", (e) => {
-				document
-					.getElementById("max-streak-text")
-					.classList.remove(e.animationName);
-			});
+			.getElementById("stats-back-button")
+			.addEventListener("click", (e) => this.statsBackButtonClicked(e));
 
-		document
-			.getElementById("status-box")
-			.addEventListener("animationend", (e) => {
-				document
-					.getElementById("status-box")
-					.classList.remove(e.animationName);
-			});
-
-		document
-			.getElementById("input-tooltip")
-			.addEventListener("animationend", (e) => {
-				document
-					.getElementById("input-tooltip")
-					.classList.remove(e.animationName);
-			});
-
+		this.addAnimationEndEventListener("current-streak-text");
+		this.addAnimationEndEventListener("max-streak-text");
+		this.addAnimationEndEventListener("unseen-score-text");
+		this.addAnimationEndEventListener("wrong-score-text");
+		this.addAnimationEndEventListener("slow-score-text");
+		this.addAnimationEndEventListener("medium-score-text");
+		this.addAnimationEndEventListener("fast-score-text");
+		this.addAnimationEndEventListener("status-box");
+		this.addAnimationEndEventListener("input-tooltip");
 		document.addEventListener("keydown", this.onKeyDown.bind(this));
 		document.addEventListener("touchend", this.onTouchEnd.bind(this));
 
 		optionsMenuInit();
+	}
+
+	addAnimationEndEventListener(id) {
+		document
+			.getElementById(id)
+			.addEventListener("animationend", (e) => {
+				document
+					.getElementById(id)
+					.classList.remove(e.animationName);
+			});
 	}
 
 	loadMainView() {
@@ -1693,8 +2020,13 @@ class ConjugationApp {
 			this.state.currentStreak0OnReset = false;
 		}
 
+		if (this.state.loadScoresOnReset) {
+			updateScores(this.state.currentWordList, null);
+			this.state.loadScoresOnReset = false;
+		}
+
 		if (this.state.loadWordOnReset) {
-			this.state.currentWord = loadNewWord(this.state.currentWordList);
+			this.state.currentWord = loadNewWord(this.state.currentWordList, this.state.scorer.normalized);
 			this.state.loadWordOnReset = false;
 		}
 
@@ -1702,17 +2034,18 @@ class ConjugationApp {
 		showFurigana(
 			this.state.settings.furigana,
 			this.state.settings.furiganaTiming ===
-				CONDITIONAL_UI_TIMINGS.onlyAfterAnswering
+			CONDITIONAL_UI_TIMINGS.onlyAfterAnswering
 		);
 		showTranslation(
 			this.state.settings.translation,
 			this.state.settings.translationTiming ===
-				CONDITIONAL_UI_TIMINGS.onlyAfterAnswering
+			CONDITIONAL_UI_TIMINGS.onlyAfterAnswering
 		);
 
 		const mainInput = document.getElementById("main-text-input");
 		mainInput.disabled = false;
 		mainInput.value = "";
+		this.state.startTimestamp = Date.now();
 		if (!isTouch) {
 			mainInput.focus();
 		}
@@ -1721,10 +2054,11 @@ class ConjugationApp {
 	// Handle generic keydown events that aren't targeting a specific element
 	onKeyDown(e) {
 		let keyCode = e.keyCode ? e.keyCode : e.which;
+		let buttons = ["options-button", "stats-button"];
 		if (
 			this.state.activeScreen === SCREENS.results &&
 			keyCode == "13" &&
-			document.activeElement.id !== "options-button"
+			!buttons.includes(document.activeElement.id)
 		) {
 			this.loadMainView();
 		}
@@ -1732,9 +2066,13 @@ class ConjugationApp {
 
 	// Handle generic touchend events that aren't targeting a specific element
 	onTouchEnd(e) {
+		let buttonIds = [
+			document.getElementById("options-button"),
+			document.getElementById("stats-button")
+		];
 		if (
 			this.state.activeScreen === SCREENS.results &&
-			e.target != document.getElementById("options-button")
+			!buttonIds.includes(e.target)
 		) {
 			this.loadMainView();
 		}
@@ -1776,31 +2114,57 @@ class ConjugationApp {
 				.classList.remove("question-screen");
 			document.getElementById("main-view").classList.add("results-screen");
 
-			mainInput.blur();
-			updateStatusBoxes(this.state.currentWord, inputValue);
-			// If the furigana or translation were made transparent during the question, make them visible now
-			showFurigana(this.state.settings.furigana, false);
-			showTranslation(this.state.settings.translation, false);
-
-			// update probabilities before next word is chosen so don't choose same word
 			const inputWasCorrect =
 				this.state.currentWord.conjugation.validAnswers.some(
 					(e) => e == inputValue
 				);
 
-			updateProbabilites(
+			// record response time
+			this.state.currentWord.addResponseTime(
+				inputWasCorrect,
+				Date.now() - this.state.startTimestamp
+			);
+
+			// show stats button if using speed scoring
+			if (
+				this.state.settings.streakOrSpeedScoring ===
+				CONDITIONAL_UI_TIMINGS.speed
+			) {
+				toggleDisplayNone(
+					document.getElementById("stats-button"),
+					false
+				);
+			}
+
+			mainInput.blur();
+			updateStatusBoxes(this.state.currentWord, inputValue, this.state.scorer);
+			// If the furigana or translation were made transparent during the question, make them visible now
+			showFurigana(this.state.settings.furigana, false);
+			showTranslation(this.state.settings.translation, false);
+
+			// update probabilities before next word is chosen so don't choose same word
+			this.state.scorer.updateProbabilites(
 				this.state.currentWordList,
 				this.state.wordsRecentlySeenQueue,
 				this.state.currentWord,
 				inputWasCorrect
 			);
 
-			if (inputWasCorrect) {
-				addToScore(1, this.state.maxScoreObjects, this.state.maxScoreIndex);
-				this.state.currentStreak0OnReset = false;
-			} else {
-				this.state.currentStreak0OnReset = true;
+			switch (this.state.settings.streakOrSpeedScoring) {
+			case CONDITIONAL_UI_TIMINGS.streak:
+				if (inputWasCorrect) {
+					addToScore(1, this.state.maxScoreObjects, this.state.maxScoreIndex);
+					this.state.currentStreak0OnReset = false;
+				} else {
+					this.state.currentStreak0OnReset = true;
+				}
+				break;
+			case CONDITIONAL_UI_TIMINGS.speed:
+				updateScores(this.state.currentWordList, this.state.currentWord);
+				this.state.loadScoresOnReset = false;
+				break;
 			}
+
 			this.state.loadWordOnReset = true;
 
 			mainInput.disabled = true;
@@ -1821,12 +2185,14 @@ class ConjugationApp {
 
 		toggleDisplayNone(document.getElementById("main-view"), true);
 		toggleDisplayNone(document.getElementById("options-view"), false);
+		toggleDisplayNone(document.getElementById("stats-view"), true);
 		toggleDisplayNone(document.getElementById("donation-section"), false);
 	}
 
 	backButtonClicked(e) {
 		e.preventDefault();
 
+		let previousSettings = structuredClone(this.state.settings);
 		insertSettingsFromUi(this.state.settings);
 		localStorage.setItem("settings", JSON.stringify(this.state.settings));
 
@@ -1840,11 +2206,30 @@ class ConjugationApp {
 			);
 		}
 
-		if (newMaxScoreIndex !== this.state.maxScoreIndex) {
-			this.state.maxScoreIndex = newMaxScoreIndex;
-			this.state.currentStreak0OnReset = true;
-			this.state.loadWordOnReset = true;
+		let conjugationSettingsChanged =
+			newMaxScoreIndex !== this.state.maxScoreIndex;
 
+		let scoringMethodChanged =
+			previousSettings.streakOrSpeedScoring !=
+			this.state.settings.streakOrSpeedScoring;
+
+		if (conjugationSettingsChanged) {
+			localStorage.setItem("maxScoreIndex", newMaxScoreIndex);
+			this.state.maxScoreIndex = newMaxScoreIndex;
+		}
+
+		if (conjugationSettingsChanged || scoringMethodChanged) {
+			switch (this.state.settings.streakOrSpeedScoring) {
+			case CONDITIONAL_UI_TIMINGS.streak:
+				this.state.scorer = new StreakScorer();
+				this.state.currentStreak0OnReset = true;
+				break;
+			case CONDITIONAL_UI_TIMINGS.speed:
+				this.state.scorer = new SpeedScorer();
+				this.state.loadScoresOnReset = true;
+				break;
+			}
+			this.state.loadWordOnReset = true;
 			this.applySettingsUpdateWordList();
 
 			// Note that the wordsRecentlySeenQueue is not cleared.
@@ -1853,7 +2238,7 @@ class ConjugationApp {
 			// If currentWordList doesn't contain those words in the queue, they won't be chosen anyways so the queue probability logic silenty fails.
 		} else {
 			// If none of the conjugation settings were changed, don't reload the word list or reset the probabilities
-			applyNonConjugationSettings(this.state.settings);
+			applyNonConjugationSettings(this.state.settings, false);
 		}
 
 		document.getElementById("max-streak-text").textContent =
@@ -1861,8 +2246,26 @@ class ConjugationApp {
 
 		toggleDisplayNone(document.getElementById("main-view"), false);
 		toggleDisplayNone(document.getElementById("options-view"), true);
+		toggleDisplayNone(document.getElementById("stats-view"), true);
 		toggleDisplayNone(document.getElementById("donation-section"), true);
 
+		this.loadMainView();
+	}
+
+	statsButtonClicked(e) {
+		this.state.activeScreen = SCREENS.stats;
+		loadStatsView(this.state.currentWordList);
+		toggleDisplayNone(document.getElementById("main-view"), true);
+		toggleDisplayNone(document.getElementById("options-view"), true);
+		toggleDisplayNone(document.getElementById("stats-view"), false);
+		toggleDisplayNone(document.getElementById("donation-section"), false);
+	}
+
+	statsBackButtonClicked(e) {
+		toggleDisplayNone(document.getElementById("main-view"), false);
+		toggleDisplayNone(document.getElementById("options-view"), true);
+		toggleDisplayNone(document.getElementById("stats-view"), true);
+		toggleDisplayNone(document.getElementById("donation-section"), true);
 		this.loadMainView();
 	}
 
@@ -1923,15 +2326,27 @@ class ConjugationApp {
 			}
 		}
 
+		switch (this.state.settings.streakOrSpeedScoring) {
+		case CONDITIONAL_UI_TIMINGS.speed:
+			this.state.scorer = new SpeedScorer();
+			this.state.loadScoresOnReset = true;
+			break;
+		case CONDITIONAL_UI_TIMINGS.streak:
+			this.state.scorer = new StreakScorer();
+			document.getElementById("max-streak-text").textContent =
+				this.state.maxScoreObjects[this.state.maxScoreIndex].score;
+			break;
+		}
+
 		this.applySettingsUpdateWordList();
-		this.state.currentWord = loadNewWord(this.state.currentWordList);
+		this.state.currentWord = loadNewWord(
+			this.state.currentWordList,
+			this.state.scorer.normalized
+		);
 		this.state.wordsRecentlySeenQueue = [];
 
 		this.state.currentStreak0OnReset = false;
 		this.state.loadWordOnReset = false;
-
-		document.getElementById("max-streak-text").textContent =
-			this.state.maxScoreObjects[this.state.maxScoreIndex].score;
 
 		this.loadMainView();
 	}
@@ -1941,7 +2356,8 @@ class ConjugationApp {
 			this.state.settings,
 			this.state.completeWordList
 		);
-		equalizeProbabilities(filteredWords);
+		clearResponseTimes(filteredWords);
+		this.state.scorer.equalizeProbabilities(filteredWords);
 		this.state.currentWordList = filteredWords;
 	}
 }

@@ -10,6 +10,8 @@ import { toggleDisplayNone } from "./utils.js";
 export const CONDITIONAL_UI_TIMINGS = Object.freeze({
 	always: "always",
 	onlyAfterAnswering: "after",
+	streak: "streak",
+	speed: "speed"
 });
 
 const nonConjugationSettings = getNonConjugationSettingsSet();
@@ -56,6 +58,7 @@ export const getDefaultSettings = () => {
 	// Set input radio values
 	settings["translationTiming"] = CONDITIONAL_UI_TIMINGS.always;
 	settings["furiganaTiming"] = CONDITIONAL_UI_TIMINGS.always;
+	settings["streakOrSpeedScoring"] = CONDITIONAL_UI_TIMINGS.streak;
 
 	return settings;
 };
@@ -124,7 +127,9 @@ export function optionsMenuInit() {
 	document
 		.getElementById("translation-checkbox")
 		.addEventListener("click", showHideTranslationSubOptions);
-
+	document
+		.getElementById("show-score-checkbox")
+		.addEventListener("click", showHideScoreSubOptions);
 	document
 		.getElementById("verbs-checkbox")
 		.addEventListener("click", verbAndAdjCheckError);
@@ -380,14 +385,29 @@ function showHideTranslationSubOptions() {
 	);
 }
 
-export function applyNonConjugationSettings(settings) {
+function showHideScoreSubOptions() {
+	toggleDisplayNone(
+		document.getElementById("show-score-sub-options"),
+		!document.getElementById("show-score-checkbox").checked
+	);
+}
+
+export function applyNonConjugationSettings(settings, hideStatsButton) {
 	showEmojis(settings.emoji);
-	showStreak(settings.streak);
+	showStreak(
+		settings.showScore
+		&& settings.streakOrSpeedScoring === CONDITIONAL_UI_TIMINGS.streak
+	);
+	showScores(
+		settings.showScore
+		&& settings.streakOrSpeedScoring === CONDITIONAL_UI_TIMINGS.speed,
+		hideStatsButton
+	);
 	// showTranslation and showFurigana are dependent on the state, so we can't set them here
 }
 
 export function applyAllSettingsFilterWords(settings, completeWordList) {
-	applyNonConjugationSettings(settings);
+	applyNonConjugationSettings(settings, true);
 
 	let verbs = [];
 	const verbRegex = /^verb.+/;
@@ -581,13 +601,29 @@ export const showEmojis = function (show) {
 };
 
 export const showStreak = function (show) {
-	document.querySelectorAll(".streak").forEach((s) => {
+       document.querySelectorAll(".streak").forEach((s) => {
+               if (show) {
+                       s.classList.remove("display-none");
+               } else {
+                       s.classList.add("display-none");
+               }
+       });
+};
+
+export const showScores = function (show, hideStatsButton) {
+	document.querySelectorAll(".score").forEach((s) => {
 		if (show) {
 			s.classList.remove("display-none");
 		} else {
 			s.classList.add("display-none");
 		}
 	});
+	let statsButton = document.getElementById("stats-button");
+	if (show && !hideStatsButton) {
+		statsButton.classList.remove("display-none");
+	} else {
+		statsButton.classList.add("display-none");
+	}
 };
 
 // Can be shown never, always, or only after answering.
@@ -657,6 +693,12 @@ export function selectCheckboxesInUi(settings) {
 		"translation-after-radio"
 	);
 
+	if (settings.streakOrSpeedScoring === CONDITIONAL_UI_TIMINGS.streak) {
+		document.getElementById("streak-scoring-radio").checked = true;
+	} else if (settings.streakOrSpeedScoring === CONDITIONAL_UI_TIMINGS.speed) {
+		document.getElementById("speed-scoring-radio").checked = true;
+	}
+
 	function selectConditionalUiRadio(
 		radioValue,
 		alwaysRadioId,
@@ -702,14 +744,31 @@ export function insertSettingsFromUi(settings) {
 		settings[input.name] = input.checked;
 	}
 
-	settings.furiganaTiming = getConditionalUiSetting("furiganaTiming");
-	settings.translationTiming = getConditionalUiSetting("translationTiming");
+	settings.furiganaTiming = getConditionalUiSetting(
+		"furiganaTiming",
+		CONDITIONAL_UI_TIMINGS.always
+	);
+	settings.translationTiming = getConditionalUiSetting(
+		"translationTiming",
+		CONDITIONAL_UI_TIMINGS.always
+	);
 
-	// Default to "always"
-	function getConditionalUiSetting(radioName) {
+	// If showScore is true, set streakOrSpeedScoring from the UI selection,
+	// defaulting to streak scoring. If showScore is false, use streak scoring
+	// regardless of the now hidden streak/speed UI setting.
+	if (settings.showScore) {
+		settings.streakOrSpeedScoring = getConditionalUiSetting(
+			"streakOrSpeedScoring",
+			CONDITIONAL_UI_TIMINGS.streak
+		);
+	} else {
+		settings.streakOrSpeedScoring = CONDITIONAL_UI_TIMINGS.streak;
+	}
+
+	function getConditionalUiSetting(radioName, defaultValue) {
 		return (
 			document.querySelector(`input[name="${radioName}"]:checked`)?.value ??
-			CONDITIONAL_UI_TIMINGS.always
+			defaultValue
 		);
 	}
 

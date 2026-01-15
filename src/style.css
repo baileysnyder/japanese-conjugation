@@ -39,23 +39,34 @@ input[type="radio"] + label {
 	cursor: pointer;
 }
 
-.streak p {
+.streak p, .score p {
 	margin: 0;
 	margin-bottom: 0;
-	font-size: 0.65rem;
 }
 
-#current-streak {
-	left: 0.23rem;
-	float: left;
+#unseen-score-text {
+	color: lightslategray;
 }
 
-#current-streak-text,
-#max-streak-text {
-	margin: 0;
+#wrong-score-text {
+	color: orangered;
+}
+
+#slow-score-text {
+	color: #ffc439;
+}
+
+#medium-score-text {
+	color: mediumseagreen;
+}
+
+#fast-score-text {
+	color: cornflowerblue
+}
+
+.streak-text, .score-text {
 	font-size: 1rem;
 }
-
 .grow-animation {
 	animation: grow-animation 0.5s;
 }
@@ -67,11 +78,6 @@ input[type="radio"] + label {
 	to {
 		transform: scale(1);
 	}
-}
-
-#max-streak {
-	right: 0.23rem;
-	float: right;
 }
 
 #toppest-container {
@@ -88,7 +94,6 @@ input[type="radio"] + label {
 	background: rgb(44, 43, 41);
 }
 
-#streak-container:after,
 #settings-child-container:after {
 	content: "";
 	display: table;
@@ -96,6 +101,10 @@ input[type="radio"] + label {
 }
 
 #streak-container {
+	display: flex;
+	justify-content: space-between;
+	text-align: center;
+	font-size: 0.65rem;
 	padding: 0.4rem;
 	padding-top: 0.3rem;
 }
@@ -299,6 +308,11 @@ button {
 	padding-right: 0.4rem;
 }
 
+#stats-button {
+	margin-left: -0.27rem;
+	float: left;
+}
+
 button:hover {
 	background: rgb(70, 70, 70);
 	cursor: pointer;
@@ -323,9 +337,18 @@ h2 {
 	font-size: 1rem;
 }
 
-#options-view {
+#options-view,
+#stats-view {
 	padding-left: 0.73rem;
 	padding-right: 0.73rem;
+}
+
+#stats-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-bottom: 0.9rem;
+	font-size: 0.8rem;
+	color: var(--whiteTextColor);
 }
 
 #options-form {

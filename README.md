@@ -13,3 +13,9 @@ $ npm run dev
 # minifies and outputs into /dist
 $ npm run build
 ```
+
+## Build Setup Without Node.js Installation
+For VSCode users, the `.devcontainer/devcontainer.json` file allows the project to be opened in a Docker container so that installation of Node.js locally is not required. The container supports hot reload and debugging support via the debug launch targets defined in the `.vscode/launch.json` file.
+
+## Deployment to Github Pages
+The .github/workflows/publish-site.yml file provides a Github workflow to automatically deploy to the  project's GitHub Pages site.
