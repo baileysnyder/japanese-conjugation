@@ -2125,8 +2125,9 @@ class ConjugationApp {
 				Date.now() - this.state.startTimestamp
 			);
 
-			// show stats button if using speed scoring
+			// reveal stats button if it has been hidden when using speed scoring
 			if (
+				!this.state.showStatsButton &&
 				this.state.settings.streakOrSpeedScoring ===
 				CONDITIONAL_UI_TIMINGS.speed
 			) {
@@ -2134,6 +2135,7 @@ class ConjugationApp {
 					document.getElementById("stats-button"),
 					false
 				);
+				this.state.showStatsButton = true;
 			}
 
 			mainInput.blur();
@@ -2230,6 +2232,7 @@ class ConjugationApp {
 				break;
 			}
 			this.state.loadWordOnReset = true;
+			this.state.showStatsButton = false;
 			this.applySettingsUpdateWordList();
 
 			// Note that the wordsRecentlySeenQueue is not cleared.
@@ -2238,7 +2241,7 @@ class ConjugationApp {
 			// If currentWordList doesn't contain those words in the queue, they won't be chosen anyways so the queue probability logic silenty fails.
 		} else {
 			// If none of the conjugation settings were changed, don't reload the word list or reset the probabilities
-			applyNonConjugationSettings(this.state.settings, false);
+			applyNonConjugationSettings(this.state.settings, this.state.showStatsButton);
 		}
 
 		document.getElementById("max-streak-text").textContent =
@@ -2347,6 +2350,7 @@ class ConjugationApp {
 
 		this.state.currentStreak0OnReset = false;
 		this.state.loadWordOnReset = false;
+		this.state.showStatsButton = false;
 
 		this.loadMainView();
 	}

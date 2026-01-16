@@ -392,7 +392,7 @@ function showHideScoreSubOptions() {
 	);
 }
 
-export function applyNonConjugationSettings(settings, hideStatsButton) {
+export function applyNonConjugationSettings(settings, showStatsButton) {
 	showEmojis(settings.emoji);
 	showStreak(
 		settings.showScore
@@ -401,13 +401,13 @@ export function applyNonConjugationSettings(settings, hideStatsButton) {
 	showScores(
 		settings.showScore
 		&& settings.streakOrSpeedScoring === CONDITIONAL_UI_TIMINGS.speed,
-		hideStatsButton
+		showStatsButton
 	);
 	// showTranslation and showFurigana are dependent on the state, so we can't set them here
 }
 
 export function applyAllSettingsFilterWords(settings, completeWordList) {
-	applyNonConjugationSettings(settings, true);
+	applyNonConjugationSettings(settings, false);
 
 	let verbs = [];
 	const verbRegex = /^verb.+/;
@@ -610,7 +610,7 @@ export const showStreak = function (show) {
        });
 };
 
-export const showScores = function (show, hideStatsButton) {
+export const showScores = function (show, showStatsButton) {
 	document.querySelectorAll(".score").forEach((s) => {
 		if (show) {
 			s.classList.remove("display-none");
@@ -619,7 +619,7 @@ export const showScores = function (show, hideStatsButton) {
 		}
 	});
 	let statsButton = document.getElementById("stats-button");
-	if (show && !hideStatsButton) {
+	if (show && showStatsButton) {
 		statsButton.classList.remove("display-none");
 	} else {
 		statsButton.classList.add("display-none");
