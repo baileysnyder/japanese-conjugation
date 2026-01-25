@@ -1,5 +1,5 @@
 html {
-	font-family: "Open Sans", "Arial", sans-serif;
+	font-family: "Open Sans", "Arial", "Noto Sans JP", sans-serif;
 	font-size: 17px;
 }
 
@@ -282,9 +282,13 @@ button {
 	float: right;
 	background: rgb(63, 63, 63);
 	border: none;
-	box-shadow: 0 0.045rem 0 rgb(35, 35, 35), 0.045rem 0 0 rgb(35, 35, 35),
-		0.09rem 0.045rem 0 rgb(35, 35, 35), 0.045rem 0.09rem 0 rgb(35, 35, 35),
-		0.136rem 0.09rem 0 rgb(35, 35, 35), 0.09rem 0.136rem 0 rgb(35, 35, 35);
+	box-shadow:
+		0 0.045rem 0 rgb(35, 35, 35),
+		0.045rem 0 0 rgb(35, 35, 35),
+		0.09rem 0.045rem 0 rgb(35, 35, 35),
+		0.045rem 0.09rem 0 rgb(35, 35, 35),
+		0.136rem 0.09rem 0 rgb(35, 35, 35),
+		0.09rem 0.136rem 0 rgb(35, 35, 35);
 	border-radius: 0.4rem;
 	color: var(--whiteTextColor);
 	padding-top: 0.18rem;
@@ -445,7 +449,9 @@ hr {
 	margin-left: -0.23rem;
 	border-radius: 10px;
 	max-width: fit-content;
-	box-shadow: 0.14rem 0.1rem 5px #232323, 0.1rem 0.14rem 5px #232323;
+	box-shadow:
+		0.14rem 0.1rem 5px #232323,
+		0.1rem 0.14rem 5px #232323;
 	margin-bottom: 0.5rem;
 	margin-top: 0.1rem;
 	border: 2px solid #424242;
